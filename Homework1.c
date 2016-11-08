@@ -1,4 +1,5 @@
 #include<stdio.h>
+#include <string.h>
 
 void multiplyBy2() {
   int num = 0;
@@ -71,42 +72,69 @@ void insertionSort() {
 	}
 }
 
-void merge(char arr[], int left, int middle, int right) {
+void merge(char arr[100], int left, int middle, int right) {
 	int i;
 	int leftIndex = left;
 	int rightIndex = middle + 1;
 	char newArr[100];
+  if (strlen(arr) <= 1) {
+    return;
+  }
 	for(i = left; i <= right; i++) {
-		if (arr[leftIndex] < arr[rightIndex]) {
+		if (arr[leftIndex] < arr[rightIndex] && leftIndex <= middle && rightIndex <= right) {
 			newArr[i] = arr[leftIndex];
-		} else {
+      leftIndex++;
+		} else if (rightIndex <= right && leftIndex <= middle) {
 			newArr[i] = arr[rightIndex];
-		}	
+      rightIndex++;
+		} else {
+      if (leftIndex > middle) {
+        newArr[i] = arr[rightIndex];
+        rightIndex++;
+      } else {
+        newArr[i] = arr[leftIndex];
+        leftIndex++;
+      }
+    }
 	}
 	for(i = left; i <= right; i++) {
+    printf("%c", newArr[i]);
 		arr[i] = newArr[i];
 	}
+  printf("\n");
 }
 
-void mergeSort(char arr[], int left, int right) {
+void mergeSort(char arr[100], int left, int right) {
 	int middle = left + (right - left) / 2;
-	if (right - left > 1){
+	if (right > left){
 		mergeSort(arr, left, middle);
 		mergeSort(arr, middle + 1, right);
-
+    merge(arr, left, middle, right);
 	}
 }
 
 void mergeInit() {
   char str[100];
   int success = scanf("%s", &str);
-  int len = sizeof(str) / sizeof(str[0]);
+  int len = strlen(str);
+  if (len == 1) {
+    printf("%c\n", str[0]);
+  } else if (len == 0) {
+    return;
+  }
+	mergeSort(str, 0, len - 1);
+}
 
-	mergeSort(char arr[], int left, int right);
+void BFS() {
+  char adjmap[27][27];
+  char str[100];
+  int success = scanf("%s", &str);
+  int len = strlen(str);
+
 }
 
 int main() {
 
-  insertionSort();
+  mergeInit();
   return (0);
 }
