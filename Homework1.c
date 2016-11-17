@@ -125,16 +125,151 @@ void mergeInit() {
 	mergeSort(str, 0, len - 1);
 }
 
-void BFS() {
-  char adjmap[27][27];
-  char str[100];
-  int success = scanf("%s", &str);
-  int len = strlen(str);
-
+void printAdjMap(char arr[27][27]) {
+  int first, second;
+  char i;
+  printf("  ");
+  for (i = 'A'; i <= 'Z'; i++) {
+    printf("%c ", i);
+  }
+  printf("\n");
+  i = 'A';
+  for (first = 0; first < 27; first++) { 
+    printf("%c ", i);
+    i++;
+    for (second = 0; second < 27; second++) {
+      printf("%d ", arr[first][second]);
+    }
+    printf("\n");
+  }
 }
 
-int main() {
+void BFSsearch(char adjmap[27][27], char currNode) {
+  int row, col;
+  char next[27] = {0};
+  //Check if vertexes exists in adjmap
+  for (col = 0; col < 27; col++) {
+    //Vertex exists
+    if (adjmap[currNode][col]) {
+      next[col] = 1;
+      printf("%c", col + 65);
+      //Set node to visited
+      for (row = 0; row < 27; row++) {
+        adjmap[row][col] = 0;
+      }
+    }
+  }
+  for (row = 0; row < 27; row++) {
+    if (next[row]) {
+      BFSsearch(adjmap, row);
+    }
+  }
+}
 
-  mergeInit();
+void BFS() {
+  int startSet = 0;
+  char start;
+  // Basic adjmap build
+  char adjmap[27][27] = {0};
+  char str[100];
+  int first, second;
+
+  while (scanf("%s", &str) != EOF) {
+    int len = strlen(str);
+    if (!startSet) {
+      start = str[0];
+      startSet = 1;
+    }
+    for (first = 2; first < len; first++) {
+      adjmap[str[0] - 65][str[first] - 65] = 1;
+    }
+  }
+  printf("%c", start);
+  char row;
+  for (row = 0; row < 27; row++) {
+    adjmap[row][start - 65] = 0;
+  }
+  BFSsearch(adjmap, start - 65);
+  printf("\n");
+  // end
+}
+
+void DFSsearch(char adjmap[27][27], char currNode) {
+  char row, col;
+  char next[27] = {0};
+  //Check if vertexes exists in adjmap
+  for (col = 0; col < 27; col++) {
+    //Vertex exists
+    if (adjmap[currNode][col]) {
+      next[col] = 1;
+      //Set node to visited
+      for (row = 0; row < 27; row++) {
+        adjmap[row][col] = 0;
+      }
+      printf("%c", col + 65);
+      DFSsearch(adjmap, col);
+    }
+  }
+}
+
+void DFS() {
+  int startSet = 0;
+  char start;
+  // Basic adjmap build
+  char adjmap[27][27] = {0};
+  char str[100];
+  int first, second;
+
+  while (scanf("%s", &str) != EOF) {
+    int len = strlen(str);
+    if (!startSet) {
+      start = str[0];
+      startSet = 1;
+    }
+    for (first = 2; first < len; first++) {
+      adjmap[str[0] - 65][str[first] - 65] = 1;
+    }
+  }
+  char row;
+  for (row = 0; row < 27; row++) {
+    adjmap[row][start - 65] = 0;
+  }
+  printf("%c", start);
+  DFSsearch(adjmap, start - 65);
+  printf("\n");
+  // end
+}
+
+void dijkstra() {
+  char adjmap[26][26] = {0};
+  char str[100];
+  char row, col;
+  char visited[26] = {-1};
+  char exists[26] = {-1};
+  while (scanf("%s", &str) != EOF) {
+    char from, to;
+    int cost = 0;
+    int len = strlen(str);
+    from = str[0] - 65;
+    to = str[2] - 65;
+    // char to int and cost calculation
+    int i = 0;
+    for (i = 4; i < len; i++) {
+        cost = 10 * cost + str[i] - 48;
+    }
+    adjmap[from][to] = cost;
+
+    // Setting unvisited nodes
+    visited[from] = 0;
+    exists[from] = 
+
+  }
+  printAdjMap(adjmap);
+  for ()
+}
+
+
+int main() {
+  dijkstra();
   return (0);
 }
