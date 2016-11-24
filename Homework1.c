@@ -1,5 +1,6 @@
 #include<stdio.h>
 #include <string.h>
+#include <math.h>
 
 void multiplyBy2() {
   int num = 0;
@@ -125,7 +126,7 @@ void mergeInit() {
 	mergeSort(str, 0, len - 1);
 }
 
-void printAdjMap(char arr[27][27]) {
+void printAdjMap(char arr[26][26]) {
   int first, second;
   char i;
   printf("  ");
@@ -134,17 +135,17 @@ void printAdjMap(char arr[27][27]) {
   }
   printf("\n");
   i = 'A';
-  for (first = 0; first < 27; first++) { 
+  for (first = 0; first < 26; first++) { 
     printf("%c ", i);
     i++;
-    for (second = 0; second < 27; second++) {
+    for (second = 0; second < 26; second++) {
       printf("%d ", arr[first][second]);
     }
     printf("\n");
   }
 }
 
-void BFSsearch(char adjmap[27][27], char currNode) {
+void BFSsearch(char adjmap[26][26], char currNode) {
   int row, col;
   char next[27] = {0};
   //Check if vertexes exists in adjmap
@@ -154,12 +155,12 @@ void BFSsearch(char adjmap[27][27], char currNode) {
       next[col] = 1;
       printf("%c", col + 65);
       //Set node to visited
-      for (row = 0; row < 27; row++) {
+      for (row = 0; row < 26; row++) {
         adjmap[row][col] = 0;
       }
     }
   }
-  for (row = 0; row < 27; row++) {
+  for (row = 0; row < 26; row++) {
     if (next[row]) {
       BFSsearch(adjmap, row);
     }
@@ -170,7 +171,7 @@ void BFS() {
   int startSet = 0;
   char start;
   // Basic adjmap build
-  char adjmap[27][27] = {0};
+  char adjmap[26][26] = {0};
   char str[100];
   int first, second;
 
@@ -186,7 +187,7 @@ void BFS() {
   }
   printf("%c", start);
   char row;
-  for (row = 0; row < 27; row++) {
+  for (row = 0; row < 26; row++) {
     adjmap[row][start - 65] = 0;
   }
   BFSsearch(adjmap, start - 65);
@@ -194,16 +195,16 @@ void BFS() {
   // end
 }
 
-void DFSsearch(char adjmap[27][27], char currNode) {
+void DFSsearch(char adjmap[26][26], char currNode) {
   char row, col;
-  char next[27] = {0};
+  char next[26] = {0};
   //Check if vertexes exists in adjmap
-  for (col = 0; col < 27; col++) {
+  for (col = 0; col < 26; col++) {
     //Vertex exists
     if (adjmap[currNode][col]) {
       next[col] = 1;
       //Set node to visited
-      for (row = 0; row < 27; row++) {
+      for (row = 0; row < 26; row++) {
         adjmap[row][col] = 0;
       }
       printf("%c", col + 65);
@@ -216,7 +217,7 @@ void DFS() {
   int startSet = 0;
   char start;
   // Basic adjmap build
-  char adjmap[27][27] = {0};
+  char adjmap[26][26] = {0};
   char str[100];
   int first, second;
 
@@ -231,7 +232,7 @@ void DFS() {
     }
   }
   char row;
-  for (row = 0; row < 27; row++) {
+  for (row = 0; row < 26; row++) {
     adjmap[row][start - 65] = 0;
   }
   printf("%c", start);
@@ -240,14 +241,66 @@ void DFS() {
   // end
 }
 
+double inf = 127;
+
+int dijkstraSearch(char visited[26], char exists[26], char currNode, char adjmap[26][26], int costList[26], char goal, char printOrder[26], int* printIndex) {
+  int vertex;
+  visited[currNode] = 1;
+  int minVertex = inf;
+  char next = -1;
+  for (vertex = 0; vertex < 26; vertex++) {
+    // Update cost list
+    if((costList[currNode] + adjmap[currNode][vertex]) < costList[vertex] && visited[vertex] == 0) {
+      costList[vertex] = adjmap[currNode][vertex] + costList[currNode];
+    }
+  }
+  // Find next vertex
+  int cost;
+  for (cost = 0; cost < 26; cost++) {
+    for (vertex = 0; vertex < 26; vertex++) {
+      if((costList[cost] + adjmap[cost][vertex]) < minVertex && visited[vertex] == 0) {
+        next = vertex;
+        minVertex = costList[cost] + adjmap[cost][vertex];
+      }
+    }
+  }
+  // If goal is reached
+  if (currNode == goal) {
+    return currNode;
+  // Dead end
+  } else if (next == -1) {
+    return -1;
+  } else if ({
+    // Keep searching
+    int print = dijkstraSearch(visited, exists, next, adjmap, costList, goal, printOrder, printIndex);
+    if(print == -1) {
+      return -1;
+    } else {
+      printOrder[*printIndex] = print;
+      *printIndex += 1;
+      return currNode;
+    }
+  }
+}
+
 void dijkstra() {
-  char adjmap[26][26] = {0};
+  char adjmap[26][26] = {inf};
+  int m, l;
+  for (m = 0; m < 26; m++) {
+    for (l = 0; l < 26; l++) {
+      adjmap[m][l] = inf;
+    }
+  }
   char str[100];
   char row, col;
-  char visited[26] = {-1};
-  char exists[26] = {-1};
+  char goal = -1;  
+  char visited[26] = {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1};
+  char exists[26] = {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1};
+  char from, to;
   while (scanf("%s", &str) != EOF) {
-    char from, to;
+    if (goal == -1) {
+      goal = str[0] - 65;
+    }
     int cost = 0;
     int len = strlen(str);
     from = str[0] - 65;
@@ -258,15 +311,36 @@ void dijkstra() {
         cost = 10 * cost + str[i] - 48;
     }
     adjmap[from][to] = cost;
-
     // Setting unvisited nodes
     visited[from] = 0;
-    exists[from] = 
-
+    exists[from] = 1; 
+    adjmap[from][from] = 0;
   }
-  printAdjMap(adjmap);
-  for ()
+  // Cost to self is 0
+//  printAdjMap(adjmap);
+  int i;
+  for (i = 0; i < 26; i++) {
+    if (exists[i] == 1) {
+      char printOrder[26] = {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1};
+      int *printIndex = malloc(sizeof *printIndex);
+      *printIndex = 0; 
+      int costList[26] = {inf,inf,inf,inf,inf,inf,inf,inf,inf,inf,inf,inf,inf,inf,inf,inf,inf,inf,inf,inf,inf,inf,inf,inf,inf,inf};
+      costList[i] = 0;
+      char tempVisited[26];
+      memcpy(tempVisited, visited, 26);
+      dijkstraSearch(tempVisited, exists, i, adjmap, costList, goal, printOrder, printIndex);
+      printf("%c", i + 65);
+      int j;
+      for (j = *printIndex; j > 0; j--) {
+        printf("-");
+        printf("%c", printOrder[j - 1] + 65);
+      }
+      printf("-");
+      printf("%d\n", costList[goal]);
+    }
+  }
 }
+
 
 
 int main() {
