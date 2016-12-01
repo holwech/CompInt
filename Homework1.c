@@ -243,7 +243,7 @@ void DFS() {
 
 double inf = 127;
 
-int dijkstraSearch(char visited[26], char exists[26], char currNode, char adjmap[26][26], int costList[26], char goal, char printOrder[26], int* printIndex) {
+void dijkstraSearch(char visited[26], char exists[26], char currNode, char adjmap[26][26], int costList[26], char goal, char parent[26]) {
   int vertex;
   visited[currNode] = 1;
   int minVertex = inf;
@@ -252,6 +252,7 @@ int dijkstraSearch(char visited[26], char exists[26], char currNode, char adjmap
     // Update cost list
     if((costList[currNode] + adjmap[currNode][vertex]) < costList[vertex] && visited[vertex] == 0) {
       costList[vertex] = adjmap[currNode][vertex] + costList[currNode];
+      parent[vertex] = currNode;
     }
   }
   // Find next vertex
@@ -265,22 +266,40 @@ int dijkstraSearch(char visited[26], char exists[26], char currNode, char adjmap
     }
   }
   // If goal is reached
-  if (currNode == goal) {
-    return currNode;
-  // Dead end
-  } else if (next == -1) {
-    return -1;
-  } else if ({
+  if (next == -1) {
+    return;
+  } else {
     // Keep searching
-    int print = dijkstraSearch(visited, exists, next, adjmap, costList, goal, printOrder, printIndex);
-    if(print == -1) {
-      return -1;
-    } else {
-      printOrder[*printIndex] = print;
-      *printIndex += 1;
-      return currNode;
+    dijkstraSearch(visited, exists, next, adjmap, costList, goal, parent);
+  }
+}
+
+int findChar(char find, char arr[26], int len) {
+  int j;
+  for (j = 0; j < len; j++) {
+    if (arr[j] == find) {
+      return j;
     }
   }
+  return -1;
+}
+
+void printPath(char start, char goal, char parent[26], int costList[26]) {
+  int next = goal;
+  int i = 25;
+  char charsToPrint[26] = {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1};
+  charsToPrint[i] = goal;
+  i--;
+  while (next != start) {
+    charsToPrint[i] = parent[next];
+    i--;
+    next = parent[next];
+  } 
+  int j;
+  for (j = i + 1; j < 26; j++) {
+    printf("%c-", charsToPrint[j] + 65);
+  }
+  printf("%d\n", costList[goal]);
 }
 
 void dijkstra() {
@@ -317,26 +336,17 @@ void dijkstra() {
     adjmap[from][from] = 0;
   }
   // Cost to self is 0
-//  printAdjMap(adjmap);
+  //  printAdjMap(adjmap);
   int i;
   for (i = 0; i < 26; i++) {
     if (exists[i] == 1) {
-      char printOrder[26] = {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1};
-      int *printIndex = malloc(sizeof *printIndex);
-      *printIndex = 0; 
+      char parent[26] = {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1};
       int costList[26] = {inf,inf,inf,inf,inf,inf,inf,inf,inf,inf,inf,inf,inf,inf,inf,inf,inf,inf,inf,inf,inf,inf,inf,inf,inf,inf};
       costList[i] = 0;
       char tempVisited[26];
       memcpy(tempVisited, visited, 26);
-      dijkstraSearch(tempVisited, exists, i, adjmap, costList, goal, printOrder, printIndex);
-      printf("%c", i + 65);
-      int j;
-      for (j = *printIndex; j > 0; j--) {
-        printf("-");
-        printf("%c", printOrder[j - 1] + 65);
-      }
-      printf("-");
-      printf("%d\n", costList[goal]);
+      dijkstraSearch(tempVisited, exists, i, adjmap, costList, goal, parent);
+      printPath(i, goal, parent, costList);
     }
   }
 }
