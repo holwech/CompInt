@@ -1,0 +1,138 @@
+/users/nas-ei-home/ga48bum/Documents/CompInt/homework2.c: In function ‘assert’:
+/users/nas-ei-home/ga48bum/Documents/CompInt/homework2.c:8:5: warning: incompatible implicit declaration of built-in function ‘printf’ [enabled by default]
+     printf(" ...OK\n");
+     ^
+/users/nas-ei-home/ga48bum/Documents/CompInt/homework2.c:10:7: warning: incompatible implicit declaration of built-in function ‘printf’ [enabled by default]
+       printf(" ...FAILED\n");
+       ^
+/users/nas-ei-home/ga48bum/Documents/CompInt/homework2.c: In function ‘test_initVector’:
+/users/nas-ei-home/ga48bum/Documents/CompInt/homework2.c:27:3: warning: incompatible implicit declaration of built-in function ‘printf’ [enabled by default]
+   printf("%s\n", " ----- Test initVector -----");
+   ^
+/users/nas-ei-home/ga48bum/Documents/CompInt/homework2.c:29:3: warning: passing argument 1 of ‘initVector’ from incompatible pointer type [enabled by default]
+   initVector(vector, 100);
+   ^
+/users/nas-ei-home/ga48bum/Documents/CompInt/homework2.c:20:6: note: expected ‘struct Vector *’ but argument is of type ‘struct Vector *’
+ void initVector(Vector* vector, int initSize) {
+      ^
+/users/nas-ei-home/ga48bum/Documents/CompInt/homework2.c:31:16: error: dereferencing pointer to incomplete type
+   assert(vector->size == 0);
+                ^
+/users/nas-ei-home/ga48bum/Documents/CompInt/homework2.c:33:16: error: dereferencing pointer to incomplete type
+   assert(vector->cap == 100);
+                ^
+/users/nas-ei-home/ga48bum/Documents/CompInt/homework2.c: In function ‘VectorPush’:
+/users/nas-ei-home/ga48bum/Documents/CompInt/homework2.c:39:5: warning: incompatible implicit declaration of built-in function ‘printf’ [enabled by default]
+     printf("%s\n", "This vector is full!");
+     ^
+/users/nas-ei-home/ga48bum/Documents/CompInt/homework2.c:42:15: warning: dereferencing ‘void *’ pointer [enabled by default]
+   vector->data[vector->size] = data;
+               ^
+/users/nas-ei-home/ga48bum/Documents/CompInt/homework2.c:42:3: error: invalid use of void expression
+   vector->data[vector->size] = data;
+   ^
+/users/nas-ei-home/ga48bum/Documents/CompInt/homework2.c: In function ‘test_vectorPush’:
+/users/nas-ei-home/ga48bum/Documents/CompInt/homework2.c:47:3: warning: incompatible implicit declaration of built-in function ‘printf’ [enabled by default]
+   printf("%s\n", "----- Test vectorPush -----");
+   ^
+/users/nas-ei-home/ga48bum/Documents/CompInt/homework2.c:49:3: warning: passing argument 1 of ‘initVector’ from incompatible pointer type [enabled by default]
+   initVector(vector1, 10);
+   ^
+/users/nas-ei-home/ga48bum/Documents/CompInt/homework2.c:20:6: note: expected ‘struct Vector *’ but argument is of type ‘struct Vector *’
+ void initVector(Vector* vector, int initSize) {
+      ^
+/users/nas-ei-home/ga48bum/Documents/CompInt/homework2.c:52:17: error: dereferencing pointer to incomplete type
+   assert(vector1->data[0] == 22);
+                 ^
+/users/nas-ei-home/ga48bum/Documents/CompInt/homework2.c:54:17: error: dereferencing pointer to incomplete type
+   assert(vector1->size == 1);
+                 ^
+/users/nas-ei-home/ga48bum/Documents/CompInt/homework2.c:56:17: error: dereferencing pointer to incomplete type
+   assert(vector1->size == 10);
+                 ^
+/users/nas-ei-home/ga48bum/Documents/CompInt/homework2.c:62:17: error: dereferencing pointer to incomplete type
+   assert(vector1->size == 10);
+                 ^
+/users/nas-ei-home/ga48bum/Documents/CompInt/homework2.c: In function ‘setAllValues’:
+/users/nas-ei-home/ga48bum/Documents/CompInt/homework2.c:70:29: error: request for member ‘size’ in something not a structure or union
+       for (i = 0; i < vector.size; i++) {
+                             ^
+/users/nas-ei-home/ga48bum/Documents/CompInt/homework2.c:71:19: error: incompatible types when assigning to type ‘Vector’ from type ‘int’
+         vector[i] = value;
+                   ^
+/users/nas-ei-home/ga48bum/Documents/CompInt/homework2.c:76:27: error: request for member ‘size’ in something not a structure or union
+     for (i = 0; i < vector.size; i++) {
+                           ^
+/users/nas-ei-home/ga48bum/Documents/CompInt/homework2.c:78:19: warning: dereferencing ‘void *’ pointer [enabled by default]
+       vector->data[i] = r;
+                   ^
+/users/nas-ei-home/ga48bum/Documents/CompInt/homework2.c:78:7: error: invalid use of void expression
+       vector->data[i] = r;
+       ^
+/users/nas-ei-home/ga48bum/Documents/CompInt/homework2.c: In function ‘test_setAllValues’:
+/users/nas-ei-home/ga48bum/Documents/CompInt/homework2.c:86:3: warning: passing argument 1 of ‘initVector’ from incompatible pointer type [enabled by default]
+   initVector(vector, 10);
+   ^
+/users/nas-ei-home/ga48bum/Documents/CompInt/homework2.c:20:6: note: expected ‘struct Vector *’ but argument is of type ‘struct Vector *’
+ void initVector(Vector* vector, int initSize) {
+      ^
+/users/nas-ei-home/ga48bum/Documents/CompInt/homework2.c:87:3: warning: passing argument 1 of ‘setAllValues’ from incompatible pointer type [enabled by default]
+   setAllValues(vector, 22);
+   ^
+/users/nas-ei-home/ga48bum/Documents/CompInt/homework2.c:67:6: note: expected ‘struct Vector *’ but argument is of type ‘struct Vector *’
+ void setAllValues(Vector* vector, int value, int random) {
+      ^
+/users/nas-ei-home/ga48bum/Documents/CompInt/homework2.c:87:3: error: too few arguments to function ‘setAllValues’
+   setAllValues(vector, 22);
+   ^
+/users/nas-ei-home/ga48bum/Documents/CompInt/homework2.c:67:6: note: declared here
+ void setAllValues(Vector* vector, int value, int random) {
+      ^
+/users/nas-ei-home/ga48bum/Documents/CompInt/homework2.c:90:17: warning: comparison between pointer and integer [enabled by default]
+   for (i = 0; i < vector; i++) {
+                 ^
+/users/nas-ei-home/ga48bum/Documents/CompInt/homework2.c:91:15: error: dereferencing pointer to incomplete type
+     if (vector->data[i] != 22) {
+               ^
+/users/nas-ei-home/ga48bum/Documents/CompInt/homework2.c:95:3: warning: incompatible implicit declaration of built-in function ‘printf’ [enabled by default]
+   printf("%s\n", "Set all values");
+   ^
+/users/nas-ei-home/ga48bum/Documents/CompInt/homework2.c: In function ‘printVector’:
+/users/nas-ei-home/ga48bum/Documents/CompInt/homework2.c:100:3: warning: incompatible implicit declaration of built-in function ‘printf’ [enabled by default]
+   printf("%s\n", "----- Vector -----");
+   ^
+/users/nas-ei-home/ga48bum/Documents/CompInt/homework2.c:102:31: error: expected identifier before ‘)’ token
+   printf("Cap: %d\n", vector->);
+                               ^
+/users/nas-ei-home/ga48bum/Documents/CompInt/homework2.c: At top level:
+/users/nas-ei-home/ga48bum/Documents/CompInt/homework2.c:110:6: warning: conflicting types for ‘print’ [enabled by default]
+ void print(Vector* vector, char type) {
+      ^
+/users/nas-ei-home/ga48bum/Documents/CompInt/homework2.c:106:5: note: previous implicit declaration of ‘print’ was here
+     print(vector, type);
+     ^
+/users/nas-ei-home/ga48bum/Documents/CompInt/homework2.c: In function ‘print’:
+/users/nas-ei-home/ga48bum/Documents/CompInt/homework2.c:114:7: warning: incompatible implicit declaration of built-in function ‘printf’ [enabled by default]
+       printf("%d ", vector->data[i]);
+       ^
+/users/nas-ei-home/ga48bum/Documents/CompInt/homework2.c:114:33: warning: dereferencing ‘void *’ pointer [enabled by default]
+       printf("%d ", vector->data[i]);
+                                 ^
+/users/nas-ei-home/ga48bum/Documents/CompInt/homework2.c:114:7: error: invalid use of void expression
+       printf("%d ", vector->data[i]);
+       ^
+/users/nas-ei-home/ga48bum/Documents/CompInt/homework2.c:116:5: warning: incompatible implicit declaration of built-in function ‘printf’ [enabled by default]
+     printf("\n");
+     ^
+/users/nas-ei-home/ga48bum/Documents/CompInt/homework2.c:120:7: warning: incompatible implicit declaration of built-in function ‘printf’ [enabled by default]
+       printf("%c ", vector->data[i]);
+       ^
+/users/nas-ei-home/ga48bum/Documents/CompInt/homework2.c:120:33: warning: dereferencing ‘void *’ pointer [enabled by default]
+       printf("%c ", vector->data[i]);
+                                 ^
+/users/nas-ei-home/ga48bum/Documents/CompInt/homework2.c:120:7: error: invalid use of void expression
+       printf("%c ", vector->data[i]);
+       ^
+/users/nas-ei-home/ga48bum/Documents/CompInt/homework2.c:122:5: warning: incompatible implicit declaration of built-in function ‘printf’ [enabled by default]
+     printf("\n");
+     ^
