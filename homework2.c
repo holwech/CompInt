@@ -1,5 +1,6 @@
 #include <time.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 #define CAPACITY 1000
 
@@ -20,7 +21,7 @@ void assert(int expr) {
 void initVector(Vector* vector, int initSize) {
    vector->size = 0;
    vector->cap = initSize;
-   vector->data = (void *)malloc(initSize * sizeof(void));
+     vector->data = malloc(initSize * sizeof(void*));
 }
 
 void test_initVector() {
@@ -33,7 +34,7 @@ void test_initVector() {
   assert(vector->cap == 100);
 }
 
-void VectorPush(Vector* vector, void* data) {
+void vectorPush(Vector* vector, void* data) {
   if(vector->size == vector->cap) {
     // Add a resize here later
     printf("%s\n", "This vector is full!");
@@ -47,16 +48,19 @@ void test_vectorPush() {
   printf("%s\n", "----- Test vectorPush -----");
   struct Vector* vector1;
   initVector(vector1, 10);
-  vectorPush(vector1, 22);
+  int* values = malloc(11 * sizeof(int));
+  values[0] = 22;
+  vectorPush(vector1, &values[0]);
   printf("%s\n", "Push int");
-  assert(vector1->data[0] == 22);
+  assert(*((int*)vector1->data[0]) == 22);
   printf("%s\n", "Push int size");
   assert(vector1->size == 1);
   printf("%s\n", "Push int cap");
   assert(vector1->size == 10);
   int i;
-  for (i = 0; i <= 10; i++) {
-    vectorPush(vector1, i + 3);
+  for (i = 1; i <= 10; i++) {
+    values[i] = i + 3;
+    vectorPush(vector1, &values[i]);
   }
   printf("%s\n", "Overflow");
   assert(vector1->size == 10);
@@ -68,27 +72,28 @@ void setAllValues(Vector* vector, int value, int random) {
   if (random == 0) {
       int i;
       for (i = 0; i < vector->size; i++) {
-        vector[i] = value;
+            vector->data[i] = &value;
       }
   } else {
     srand((unsigned int) time(NULL));
     int i;
-    for (i = 0; i < vector.size; i++) {
+    for (i = 0; i < vector->size; i++) {
       double r = ((rand() % 100) + 1) / 10000;
-      vector->data[i] = r;
+      vector->data[i] = &r;
     }
 
   }
 }
 
+// Dereferencing to something *((int*)vector1->data[0])
 void test_setAllValues() {
   struct Vector* vector;
   initVector(vector, 10);
-  setAllValues(vector, 22);
+  setAllValues(vector, 22, 0);
   int allSet = 1;
   int i;
-  for (i = 0; i < vector; i++) {
-    if (vector->data[i] != 22) {
+  for (i = 0; i < vector->size; i++) {
+    if (*((int*)vector->data[i]) != 22) {
       allSet = 0;
     }
   }
@@ -99,12 +104,9 @@ void test_setAllValues() {
 void printVector(Vector* vector, char type) {
   printf("%s\n", "----- Vector -----");
   printf("Size: %d\n", vector->size);
-  printf("Cap: %d\n", vector->);
+  printf("Cap: %d\n", vector->cap);
   printf("Data: ");
-  int i;
-  for (i = 0; i < vector->size; i++) {
-    print(vector, type);
-  }
+  printf("Not working atm\n");
 }
 
 void print(Vector* vector, char type) {
