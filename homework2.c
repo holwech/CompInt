@@ -12,7 +12,7 @@ void assert(int expr) {
   }
 }
 
-  typedef struct Vector {
+typedef struct Vector {
     int size;
     int cap;
     void** data;
@@ -21,17 +21,18 @@ void assert(int expr) {
 void initVector(Vector* vector, int initSize) {
    vector->size = 0;
    vector->cap = initSize;
-     vector->data = malloc(initSize * sizeof(void*));
+   vector->data = malloc(initSize * sizeof(void*));
 }
 
 void test_initVector() {
-  printf("%s\n", " ----- Test initVector -----");
-  struct Vector* vector;
-  initVector(vector, 100);
-  printf("%s\n", "Size");
-  assert(vector->size == 0);
-  printf("%s\n", "Capacity");
-  assert(vector->cap == 100);
+  printf("%s\n", "----- Test initVector -----");
+  int initSize = 10;
+  Vector vector;
+  initVector(&vector, initSize);
+  printf("Size");
+  assert(vector.size == 0);
+  printf("Capacity");
+  assert(vector.cap == initSize);
 }
 
 void vectorPush(Vector* vector, void* data) {
@@ -46,59 +47,83 @@ void vectorPush(Vector* vector, void* data) {
 
 void test_vectorPush() {
   printf("%s\n", "----- Test vectorPush -----");
-  struct Vector* vector1;
-  initVector(vector1, 10);
+  Vector vector1;
+  int initSize = 10;
+  initVector(&vector1, initSize);
   int* values = malloc(11 * sizeof(int));
-  values[0] = 22;
-  vectorPush(vector1, &values[0]);
-  printf("%s\n", "Push int");
-  assert(*((int*)vector1->data[0]) == 22);
-  printf("%s\n", "Push int size");
-  assert(vector1->size == 1);
-  printf("%s\n", "Push int cap");
-  assert(vector1->size == 10);
-  int i;
-  for (i = 1; i <= 10; i++) {
-    values[i] = i + 3;
-    vectorPush(vector1, &values[i]);
+  int j;
+  for (j = 0; j <= 11; j++)  {
+    values[j] = 22;
   }
-  printf("%s\n", "Overflow");
-  assert(vector1->size == 10);
+  vectorPush(&vector1, &values[0]);
+  printf("- Testing for 1 push\n");
+  printf("Push int");
+  assert(*((int*)vector1.data[0]) == 22);
+  printf("Push int size");
+  assert(vector1.size == 1);
+  printf("Push int cap");
+  assert(vector1.cap == 10);
+  vectorPush(&vector1, &values[1]);
+  printf("- Testing for 2 push\n");
+  printf("Push int");
+  printf("%d\n", *((int*)vector1.data[1]));
+  printf("Push int size");
+  assert(vector1.size == 2);
+  printf("Push int cap");
+  assert(vector1.cap == 10);
+  int i;
+  printf("- Overflowing vector\n");
+  for (i = vector1.size; i <= vector1.cap; i++) {
+    vectorPush(&vector1, &values[i]);
+  }
+  printf("Overflow");
+  assert(vector1.size == 10);
+  printf("Last value");
+  assert(*((int*)vector1.data[9]) == 22);
 }
 
 // Set all values in the vector to a spesific value
 // If random is true, all values will be set to a low random value
-void setAllValues(Vector* vector, int value, int random) {
-  if (random == 0) {
-      int i;
-      for (i = 0; i < vector->size; i++) {
-            vector->data[i] = &value;
-      }
-  } else {
-    srand((unsigned int) time(NULL));
-    int i;
-    for (i = 0; i < vector->size; i++) {
-      double r = ((rand() % 100) + 1) / 10000;
-      vector->data[i] = &r;
-    }
-
+void setAllValues(Vector* vector, void* value) {
+  if (vector->size != 0) {
+    printf("Size not 0, setAllValues was not run\n");
+    return;
+  }
+  int i;
+  for(i = 0; i < vector->cap; i++) {
+    vectorPush(vector, value);
   }
 }
 
-// Dereferencing to something *((int*)vector1->data[0])
-void test_setAllValues() {
-  struct Vector* vector;
-  initVector(vector, 10);
-  setAllValues(vector, 22, 0);
-  int allSet = 1;
+void setAllRandom(Vector* vector) {
+  srand((unsigned int) time(NULL));
   int i;
   for (i = 0; i < vector->size; i++) {
-    if (*((int*)vector->data[i]) != 22) {
+    double r = ((rand() % 100) + 1) / 10000;
+    vectorPush(vector, &r);
+  }
+}
+
+// Dereferencing to something *((int*)vector->data[0])
+void test_setAllValues() {
+  printf("----- Test setAllValues -----\n");
+  Vector vector;
+  int* allVal = malloc(sizeof(int));
+  *allVal = 22;
+  initVector(&vector, 10);
+  setAllValues(&vector, allVal);
+  printf("Printing all values: {");
+  int allSet = 1;
+  int i;
+  for (i = 0; i < vector.size; i++) {
+    printf("%d, ", *((int*)vector.data[i]));
+    if (*((int*)vector.data[i]) != *allVal) {
       allSet = 0;
     }
   }
-  printf("%s\n", "Set all values");
-  assert(allSet == 0);
+  printf("}\n");
+  printf("Set all values");
+  assert(allSet == 1);
 }
 
 void printVector(Vector* vector, char type) {
@@ -113,52 +138,19 @@ void print(Vector* vector, char type) {
   if (type == 'i') {
     int i;
     for (i = 0; i < vector->size; i++) {
-      printf("%d ", vector->data[i]);
+      printf("%d ", *((int*)vector.data[i]);
     }
     printf("\n");
   } else if (type == 'c') {
     int i;
     for (i = 0; i < vector->size; i++) {
-      printf("%c ", vector->data[i]);
+      printf("%c ", *((char*)vector.data[i]);
     }
     printf("\n");
   }
 }
 
-// ----- END VECTOR -----
-/*
-typedef struct {
-    int size;
-    int cap;
-    void** data;
-} 2DVector;
-
-void 2DVectorPush(2DVector* vector, void* data) {
-  if(vector->size == vector->cap) {
-    // Add a resize here later
-    printf("%s\n", "This vector is full!");
-    return;
-  }
-  vector->data[vector->size] = data;
-  vector->size++;
-}
-
-
-void init2DVector(Vector* vector, int size1, int size2) {
-    vector->size = 0;
-    vector->cap = size1;
-    vector->data = malloc(size1 * sizeof(void*));
-    int i;
-    for (i = 0; i < size1; i++) {
-        Vector data;
-        initVector(&data, size2);
-        2DVectorPush(vector, data);
-    }
-}
-
-*/
 // ----- END 2DVECTOR
-/*
 typedef struct {
     Vector* biases;
     Vector* weights;
@@ -185,11 +177,14 @@ void initNetwork(Network* network, Vector* sizes) {
     network.data = biases;
 
 }
-*/
 
-int main() {
+void runTests() {
   test_initVector();
   test_vectorPush();
   test_setAllValues();
+}
+
+int main() {
+  runTests();
   return (0);
 }
