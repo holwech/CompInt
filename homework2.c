@@ -191,6 +191,8 @@ void runNetwork() {
 }
 
 // END NETWORK
+
+
 typedef struct {
   Vector weights;
 } Perceptron;
