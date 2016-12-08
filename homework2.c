@@ -84,7 +84,7 @@ void test_vectorPush() {
 
 // Set all values in the vector to a spesific value
 // If random is true, all values will be set to a low random value
-void setAllValues(Vector* vector, void* value) {
+void vectorSetAllValues(Vector* vector, void* value) {
   if (vector->size != 0) {
     printf("Size not 0, setAllValues was not run\n");
     return;
@@ -95,14 +95,6 @@ void setAllValues(Vector* vector, void* value) {
   }
 }
 
-void setAllRandom(Vector* vector) {
-  srand((unsigned int) time(NULL));
-  int i;
-  for (i = 0; i < vector->size; i++) {
-    double r = ((rand() % 100) + 1) / 10000;
-    vectorPush(vector, &r);
-  }
-}
 
 // Dereferencing to something *((int*)vector->data[0])
 void test_setAllValues() {
@@ -111,7 +103,7 @@ void test_setAllValues() {
   int* allVal = malloc(sizeof(int));
   *allVal = 22;
   initVector(&vector, 10);
-  setAllValues(&vector, allVal);
+  vectorSetAllValues(&vector, allVal);
   printf("Printing all values: {");
   int allSet = 1;
   int i;
@@ -150,41 +142,85 @@ void print(Vector* vector, char type) {
   }
 }
 
-// ----- END 2DVECTOR
-typedef struct {
-    Vector* biases;
-    Vector* weights;
-    Vector* sizes;
-    int layers;
-} Network;
-
-void initNetwork(Network* network, Vector* sizes) {
-    struct Vector* weights;
-    int rows = sizes->size - 1;
-    initVector(weights, rows);
-    int row;
-    for (row = 0; row < rows; row++) {
-      struct Vector*
-    }
-
-
-    network.weights = weights;
-
-    struct Vector* biases;
-    setAllValues(biases, 0, 1);
-    initVector(biases, sizes->size - 1);
-
-    network.data = biases;
-
-}
-
 void runTests() {
   test_initVector();
   test_vectorPush();
   test_setAllValues();
 }
 
+// END VECTOR
+
+typedef struct {
+    Vector biases;
+    Vector weights;
+    Vector sizes;
+    int layers;
+} Network;
+
+void initNetwork(Network* network, Vector* sizes, int* weightVals, *int biasVals) {
+    initVector(&network->biases, 1000);
+    initVector(&network->weights, 1000);
+    initVector(&network->sizes, 1000);
+    int i;
+    for(i = 0; i < sizes->size; i++) {
+      vectorPush(&network->sizes, &sizes->data[i]);
+    }
+    network->layers = sizes->size;
+    vectorPush(&network->weights, weightVals);
+    vectorPush(&network->weights, weightVals + 1);
+    vectorPush(&network->biases, biasVals);
+    vectorPush(&network->biases, biasVals + 1);
+}
+
+double sigmoid(double input) {
+  return 1.0 / (1.0 + exp(-input));
+}
+
+void runNetwork() {
+  Network network;
+  Vector sizes;
+  initVector(&sizes, 1000);
+  nodesPerLayer = {2, 2};
+  vectorPush(&sizes, &nodesPerLayer[0]);
+  vectorPush(&sizes, &nodesPerLayer[1]);
+  double weightVals = {0.001, 0.0014};
+  double biasVals = {-0.0011, 0.0001};
+
+  initNetwork(&network, &sizes, &rValWeightsMem, &biasVals);
+
+}
+
+// END NETWORK
+typedef struct {
+  Vector weights;
+} Perceptron;
+
+void initPerceptron(*Perceptron perc, int* numWeights) {
+    vectorPush(&perc->weights, numWeights);
+    vectorPush(&perc->weights, numWeights + 1);
+
+}
+
+int feedForward(float)
+
+float randomVal() {
+  srand(time(NULL));
+  return (rand() % 100 - 50) / 1000;
+}
+
+void runPerceptron() {
+  Perceptron perp;
+  initVector(&perp.weights, 1000);
+  float numWeights = {randomVal(), randomVal()};
+
+  initPerceptron(&perp, numWeights);
+}
+
+// END PERCEPTRON
+
 int main() {
+
+
   runTests();
   return (0);
 }
