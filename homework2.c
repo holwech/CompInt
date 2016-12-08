@@ -195,13 +195,36 @@ typedef struct {
   Vector weights;
 } Perceptron;
 
-void initPerceptron(*Perceptron perc, int* numWeights) {
+void initPerceptron(*Perceptron perc, double* numWeights) {
     vectorPush(&perc->weights, numWeights);
     vectorPush(&perc->weights, numWeights + 1);
 
 }
 
-int feedForward(float)
+int feedForward(Perceptron* perc, Vector* input) {
+  float total = 0;
+  int i;
+  for(i = 0; i < input.size; i++) {
+    total += sigmoid()
+    total += *((double*)input->data[i]) * *((double*)perc->weights->data[i]);
+  }
+  if (total > 0) {
+    return 1;
+  } else {
+    return 0;
+  }
+}
+
+
+void train(Vector* perc, Vector* inputs, int answer) {
+  double LR = 0.01;
+  int ff = feedForward(perc, inputs);
+  float error = answer - ff;
+  int i;
+  for(i = 0; i < perc->weights->size; i++) {
+    *((double*)perc->weights->data[0]) = LR * error * *((int*)inputs->data[i]);
+  }
+}
 
 float randomVal() {
   srand(time(NULL));
@@ -209,11 +232,11 @@ float randomVal() {
 }
 
 void runPerceptron() {
-  Perceptron perp;
-  initVector(&perp.weights, 1000);
+  Perceptron perc;
+  initVector(&perc.weights, 1000);
   float numWeights = {randomVal(), randomVal()};
 
-  initPerceptron(&perp, numWeights);
+  initPerceptron(&perc, numWeights);
 }
 
 // END PERCEPTRON
