@@ -107,9 +107,7 @@ void mergeInit() {
   char str[100];
   int success = scanf("%s", &str);
   int len = sizeof(str) / sizeof(str[0]);
-
 	mergeSort(str, 0, len - 1);
-
 }
 
 int main() {
