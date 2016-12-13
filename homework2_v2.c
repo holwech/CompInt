@@ -3,7 +3,7 @@
 #include <time.h>
 #include <math.h>
 
-#define DEBUG 1
+#define DEBUG 0
 
 
 typedef struct {
@@ -41,7 +41,7 @@ double randomVal(int max, int offset, double divisor) {
 } void DVSetAllRandom(DVector* vector, int end) {
     int i;
     for (i = 0; i < end; i++) {
-        double r = randomVal(100, 50, 100000.0);
+        double r = randomVal(200, 100, 10000.0);
         //printf("Rval: %lf\n", r);
         DVPush(vector, r);
     }
@@ -94,14 +94,14 @@ double feedForward(Perceptron* perc, DVector* input) {
     if (0) {
       printf("%lf\n", total);
     }
-    return total;
+    return activate(total);
 }
 
 void train(Perceptron* perc, DVector* inputs, double answer) {
   if (DEBUG) {
     printf("----- ----- ----- -----\n");
   }
-  double LR = 0.01;
+  double LR = 0.001;
   double ff = feedForward(perc, inputs);
   double error = answer - ff;
   if (DEBUG) {
@@ -135,10 +135,10 @@ void train(Perceptron* perc, DVector* inputs, double answer) {
 }
 
 
-void readAndTest(Perceptron*, double);
+double readTrainingDataFromConsole(DVector*, DVector*);
 double readTrainingData(DVector*, DVector*);
-void testPercFromFile(Perceptron*);
-void readData(DVector*);
+void readAndTest(Perceptron*, double);
+void readAndTestFromConsole(Perceptron*, double);
 void runPerceptron() {
     int numInputs = 3;
     Perceptron perc;
@@ -148,9 +148,10 @@ void runPerceptron() {
     initDVector(&allInput);
     DVector answers;
     initDVector(&answers);
-    double scale = readTrainingData(&allInput, &answers);
+    //double scale = readTrainingData(&allInput, &answers);
+    double scale = readTrainingDataFromConsole(&allInput, &answers);
     int i;
-    for (i = 0; i + numInputs < allInput.size; i += numInputs) {
+    for (i = 0; i < allInput.size; i += numInputs) {
       DVector singleInput;
       initDVector(&singleInput);
       int j;
@@ -166,7 +167,8 @@ void runPerceptron() {
       printf("----- ----- ----- -----\n");
       printf("Training done\n");
     }
-    readAndTest(&perc, scale);
+    //readAndTest(&perc, scale);
+    readAndTestFromConsole(&perc, scale);
 }
 
 // END PERCEPTRON
@@ -177,14 +179,13 @@ double readTrainingData(DVector* input, DVector* answers) {
   FILE* filePtr;
   size_t length = 0;
   char* line = 0;
-  ssize_t read;
+  int read;
 
   filePtr = fopen("input.txt", "r");
   if (filePtr == NULL) {
     printf("File open failed\n");
   }
   double max = 0;
-  double min = 0;
   while ((read = getline(&line, &length, filePtr)) != -1) {
     double x, y, a;
     char ch;
@@ -221,12 +222,12 @@ void readAndTest(Perceptron* perc, double scale) {
   FILE* filePtr;
   size_t length = 0;
   char* line = 0;
-  ssize_t read;
+  int read;
 
   FILE* sfilePtr;
   size_t slength = 0;
   char* sline = 0;
-  ssize_t sread;
+  int sread;
 
   int correct = 0;
   int totalCount = 0;
@@ -293,48 +294,61 @@ void readAndTest(Perceptron* perc, double scale) {
   }
 }
 
-// Reads data from console input
-// OUTDATED
-void readData(DVector* input) {
-  char str[100];
-  int i;
-  while(1)  {
+double readTrainingDataFromConsole(DVector* input, DVector* answers) {
+  double max = 0;
+  double min = 0;
+  while (1) {
     double x, y, a;
     char ch;
     scanf("%lf%c%lf%c%lf", &x, &ch, &y, &ch, &a);
-    if(DEBUG) {
-      printf("%lf %lf %lf\n", x, y, a);
-    }
     if (x == 0.0 && y == 0.0 && a == 0.0) {
       break;
     }
     DVPush(input, x);
     DVPush(input, y);
-    DVPush(input, a);
+    DVPush(input, 1);
+    DVPush(answers, a);
+    if (fabs(x) > max && fabs(x) > fabs(y)) {
+      max = fabs(x);
+    } else if (fabs(y) > max) {
+      max = fabs(y);
+    }
   }
+  DVScale(input, max, 3);
+  if (DEBUG) {
+    int p;
+    for (p = 0; p < input->size; p += 3) {
+      printf("%lf %lf %lf\n", input->data[p], input->data[p + 1], answers->data[p / 3]);
+    }
+  }
+  return max;
 }
 
-// Guesses output from console input
-void testPerc(Perceptron* perc, double scale) {
-  while(1)  {
+void readAndTestFromConsole(Perceptron* perc, double scale) {
+  char str[20];
+  while (scanf("%s", str) != EOF) {
     DVector singleInput;
+    initDVector(&singleInput);
     double x, y;
     char ch;
-    scanf("%lf%c%lf", &x, &ch, &y);
-    if(DEBUG) {
-      printf("%lf %lf\n", x, y);
-    }
+    sscanf(str, "%lf%c%lf", &x, &ch, &y);
     DVPush(&singleInput, x);
     DVPush(&singleInput, y);
     DVPush(&singleInput, 1);
+    DVScale(&singleInput, scale, 3);
+    if(DEBUG) {
+      printf("----- ----- ----- -----\n");
+      printf("%lf %lf\n", singleInput.data[0], singleInput.data[1]);
+    }
     double ff = feedForward(perc, &singleInput);
-    if (ff > 0) {
+    if (ff > 0.0) {
       printf("+1\n");
     } else {
       printf("-1\n");
     }
   }
 }
+
 
 int main() {
   srand(time(0));
