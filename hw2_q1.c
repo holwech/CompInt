@@ -3,7 +3,7 @@
 #include <time.h>
 #include <math.h>
 
-#define DEBUG 1
+#define DEBUG 0
 
 
 typedef struct {
@@ -41,7 +41,7 @@ double randomVal(int max, int offset, double divisor) {
 } void DVSetAllRandom(DVector* vector, int end) {
     int i;
     for (i = 0; i < end; i++) {
-        double r = randomVal(200, 100, 10000.0);
+        double r = randomVal(200, 100, 8500.0);
         //printf("Rval: %lf\n", r);
         DVPush(vector, r);
     }
@@ -70,11 +70,18 @@ double sigmoid(double z) {
 }
 
 double calcTanh(double tot) {
+    if (0) {
+      printf("Tanh: %lf, with input: %lf\n", tanh(tot), tot);
+    }
     return tanh(tot);
 }
 
 double calcDTanh(double tot) {
-    return 1 - pow(tanh(tot), 2);
+    double DTanh = 1 - pow(tanh(tot), 2);
+    if (0) {
+      printf("DTanh: %lf, with input: %lf\n", DTanh, tot);
+    }
+    return DTanh;
 }
 
 int activate(double val) {
@@ -88,7 +95,7 @@ int activate(double val) {
 double calcTotal(Perceptron* perc, DVector* input) {
     double total = 0;
     int i;
-    for (i = 0; i < perc->weights.size - 1; i++) {
+    for (i = 0; i < perc->weights.size; i++) {
         total += input->data[i] * perc->weights.data[i];
     }
     if (DEBUG) {
@@ -98,7 +105,7 @@ double calcTotal(Perceptron* perc, DVector* input) {
 }
 
 double feedForward(double total) {
-    return calcTanh(total);
+    return activate(calcTanh(total));
 }
 
 
@@ -106,10 +113,10 @@ void train(Perceptron* perc, DVector* inputs, double answer) {
   if (DEBUG) {
     printf("----- ----- ----- -----\n");
   }
-  double LR = 0.0001;
+  double LR = 0.0006;
   double total = calcTotal(perc, inputs);
   double ff = feedForward(total);
-  double grad = (answer - ff) * (1 - calcDTanh(total));
+  double grad = (answer - ff) * calcDTanh(total);
   if (DEBUG) {
     printf("Input: ");
     int j;
@@ -128,7 +135,7 @@ void train(Perceptron* perc, DVector* inputs, double answer) {
   }
   int i;
   for(i = 0; i < perc->weights.size; i++) {
-    perc->weights.data[i] += LR * (- grad) * inputs->data[i];
+    perc->weights.data[i] += LR * grad * inputs->data[i];
   }
   if (DEBUG) {
     printf("After weights: ");
@@ -154,8 +161,8 @@ void runPerceptron() {
     initDVector(&allInput);
     DVector answers;
     initDVector(&answers);
-    double scale = readTrainingData(&allInput, &answers);
-    //double scale = readTrainingDataFromConsole(&allInput, &answers);
+    //double scale = readTrainingData(&allInput, &answers);
+    double scale = readTrainingDataFromConsole(&allInput, &answers);
     int i;
     for (i = 0; i < allInput.size; i += numInputs) {
       DVector singleInput;
@@ -173,8 +180,8 @@ void runPerceptron() {
       printf("----- ----- ----- -----\n");
       printf("Training done\n");
     }
-    readAndTest(&perc, scale);
-    //readAndTestFromConsole(&perc, scale);
+    //readAndTest(&perc, scale);
+    readAndTestFromConsole(&perc, scale);
 }
 
 // END PERCEPTRON
