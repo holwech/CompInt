@@ -3,7 +3,7 @@
 #include <time.h>
 #include <math.h>
 
-#define DEBUG 0
+#define DEBUG 1
 #define NMAX 5
 
 
@@ -31,15 +31,20 @@ void DVSetAll(DVector* vector, double val, int end) {
 void DVScale(DVector* vector, double scale, int numInputs) {
     int i;
     for(i = 0; i < vector->size; i += numInputs) {
-      vector->data[i] = vector->data[i] / scale;
-      vector->data[i + 1] = vector->data[i + 1] / scale;
+      if ((i + 1) % numInputs == 0) {
+        i++;
+      } else {
+        vector->data[i] = vector->data[i] / scale;
+      }
     }
 }
 
 double randomVal(int max, int offset, double divisor) {
   double r = (double)(rand() % max - offset) / divisor;
   return r;
-} void DVSetAllRandom(DVector* vector, int end) {
+}
+
+void DVSetAllRandom(DVector* vector, int end) {
     int i;
     for (i = 0; i < end; i++) {
         double r = randomVal(200, 100, 8500.0);
@@ -70,6 +75,8 @@ void IVPush(IVector* vector, int val) {
 
 typedef struct {
   DVector weights;
+  double out;
+  double total;
 } Perceptron;
 
 double sigmoid(double z) {
@@ -114,6 +121,10 @@ double calcTotal(Perceptron* perc, DVector* input) {
 
 double output(double total) {
     return calcTanh(total);
+}
+
+double gradient(double answer, double total) {
+  return (answer - output(total)) * calcDTanh(total);
 }
 
 
@@ -169,8 +180,8 @@ void runPerceptron() {
     initDVector(&allInput);
     DVector answers;
     initDVector(&answers);
-    //double scale = readTrainingData(&allInput, &answers);
-    double scale = readTrainingDataFromConsole(&allInput, &answers);
+    double scale = readTrainingData(&allInput, &answers);
+    //double scale = readTrainingDataFromConsole(&allInput, &answers);
     int i;
     for (i = 0; i < allInput.size; i += numInputs) {
       DVector singleInput;
@@ -188,8 +199,8 @@ void runPerceptron() {
       printf("----- ----- ----- -----\n");
       printf("Training done\n");
     }
-    //readAndTest(&perc, scale);
-    readAndTestFromConsole(&perc, scale);
+    readAndTest(&perc, scale);
+    //readAndTestFromConsole(&perc, scale);
 }
 
 // END PERCEPTRON
@@ -200,28 +211,65 @@ typedef struct {
     Perceptron percs[NMAX][NMAX];
 } Network;
 
-initPVector(Network* network, int layers, int widths[NMAX], int numInputs) {
+// Frist width value must include bias
+initPVector(Network* network, int layers, int widths[NMAX]) {
   int i;
   network->layers = layers;
   initIVector(&network->widths);
+  // Set width array to width input
   for (i = 0; i < layers; i++) {
-      IVPush(&network->widths, widths[i]);
+      IVPush(&network->widths, widths[i] + 1);
   }
-  for (i = 0; i < widths[0]; i++) {
+  // Set each input node weight to 1. Input nodes do not have weights
+  //
+  for (i = 0; i < widths[0] + 1; i++) {
     initDVector(&network->percs[0][i].weights);
-    DVSetAllRandom(&network->percs[0][i].weights, numInputs);
+    DVPush(&network->percs[0][i].weights, 1)
   }
   int layer;
   int neuron;
   for (layer = 0; layer < layers; layer++) {
-    for (neuron = 0; neuron < widths[layer]; neuron++) {
+    for (neuron = 0; neuron < widths[layer] + 1; neuron++) {
       initDVector(&network->percs[layer][neuron].weights);
-      DVSetAllRandom(&network->percs[layer][neuron].weights, widths[layer - 1]);
+      DVSetAllRandom(&network->percs[layer][neuron].weights, widths[layer - 1] + 1);
     }
   }
 }
 
-
+// Input including bias
+double fwPropagate(Network* network, DVector* inputs) {
+  int layer;
+  int neu;
+  int prev;
+  double fwp;
+  // Pass input through for input layer
+  for (neu = 0; neu < network->widths[0]; neu++) {
+    network->percs[0][neu].out = inputs[neu];
+    network->percs[0][neu].total = inputs[neu];
+  }
+  // Set the output of each bias to 1;
+  for (layer = 1; layer < network->layers; layer++) {
+    network->percs[layer][network->widths[layer] - 1].out = 1;
+    network->percs[layer][network->widths[layer] - 1].total = 1;
+  }
+  // Calculate forward propagation
+  for(layer = 1; i < network->layers; layer++) {
+    // For each neuron in layer
+    for (neu = 0; neu < network->widths[layer] - 1; neu++) {
+      // Adding each output from prev layer and calculating the tanh
+      double total = 0;
+      for (prev = 0; prev < network->widths[layer - 1]; prev++) {
+        double weight = network->percs[layer][neu].weights[prev];
+        double out = network->precs[layer - 1][prev].out;
+        total += out * weight;
+        network->precs[layer][neu].total += total;
+        network->precs[layer][neu].out += output(total);
+        fwp = network->precs[layer][neu].out;
+      }
+    }
+  }
+  return fwp;
+}
 
 // END NETWORK
 
