@@ -77,6 +77,7 @@ typedef struct {
   DVector weights;
   double out;
   double total;
+  double delta;
 } Perceptron;
 
 double sigmoid(double z) {
@@ -123,8 +124,8 @@ double output(double total) {
     return calcTanh(total);
 }
 
-double gradient(double answer, double total) {
-  return (answer - output(total)) * calcDTanh(total);
+double calcGradient(double answer, double total) {
+  return 2 * (answer - output(total)) * calcDTanh(total);
 }
 
 
@@ -237,11 +238,10 @@ initPVector(Network* network, int layers, int widths[NMAX]) {
 }
 
 // Input including bias
-double fwPropagate(Network* network, DVector* inputs) {
+double fwPropagate(Network* network, DVector* inputs, DVector* fwp) {
   int layer;
   int neu;
   int prev;
-  double fwp;
   // Pass input through for input layer
   for (neu = 0; neu < network->widths[0]; neu++) {
     network->percs[0][neu].out = inputs[neu];
@@ -258,17 +258,58 @@ double fwPropagate(Network* network, DVector* inputs) {
     for (neu = 0; neu < network->widths[layer] - 1; neu++) {
       // Adding each output from prev layer and calculating the tanh
       double total = 0;
-      for (prev = 0; prev < network->widths[layer - 1]; prev++) {
+      for (prev = 0; prev < network->widths[layer]; prev++) {
         double weight = network->percs[layer][neu].weights[prev];
         double out = network->precs[layer - 1][prev].out;
         total += out * weight;
         network->precs[layer][neu].total += total;
         network->precs[layer][neu].out += output(total);
-        fwp = network->precs[layer][neu].out;
+        // Adds each output from each output-node to the fwp array
+        if (layer == (network->layers - 1)) {
+            DVPush(fwp, network->percs[layer][neu].out);
+        }
+
       }
     }
   }
   return fwp;
+}
+
+void getPercInput(Network* network, DVector* input, int neuron, int layer) {
+  int i;
+  for (i = 0; i < network->widths[layer - 1]; i++) {
+    DVPush(input, network->percs[layer - 1][i].out);
+  }
+}
+
+void bwPropagation(Network* network, DVector* gradient, double answer) {
+  int neu;
+  double LR = 0.0009;
+  double newWeights[NMAX][NMAX];
+  // Calculates the delta for the output layer
+  for (neu = 0; neu < network->widths[layers - 1]; neu++) {
+    DVector inputs;
+    initDVector(inputs);
+    getPercInput(network, input, neu, network->layers - 1);
+    double net_o = total(network->percs[network->layers - 1][neu]);
+    double delta = calcGradient(net_o, answer);
+    double weights = network->percs[layers - 1][neu].weights;
+    newWeights[network->layers - 1] = prevWeight + LR *
+    }
+
+}
+
+void train(Network* network, DVector* inputs, double answer) {
+  DVector gradient;
+  initDVector(gradient);
+  fwPropagate(network, inputs, gradient);
+  /*
+  int i;
+  for (i = 0; i < gradient->size; i++) {
+    gradient->data[i] = calcGradient(gradient->data[i]);
+  }
+  */
+  bwPropagation(network, &gradient, answer);
 }
 
 // END NETWORK
