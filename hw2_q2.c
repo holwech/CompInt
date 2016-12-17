@@ -168,47 +168,12 @@ void train(Perceptron* perc, DVector* inputs, double answer) {
 }
 
 
-double readTrainingDataFromConsole(DVector*, DVector*);
-double readTrainingData(DVector*, DVector*);
-void readAndTest(Perceptron*, double);
-void readAndTestFromConsole(Perceptron*, double);
-void runPerceptron() {
-    int numInputs = 3;
-    Perceptron perc;
-    initDVector(&perc.weights);
-    DVSetAllRandom(&perc.weights, numInputs);
-    DVector allInput;
-    initDVector(&allInput);
-    DVector answers;
-    initDVector(&answers);
-    double scale = readTrainingData(&allInput, &answers);
-    //double scale = readTrainingDataFromConsole(&allInput, &answers);
-    int i;
-    for (i = 0; i < allInput.size; i += numInputs) {
-      DVector singleInput;
-      initDVector(&singleInput);
-      int j;
-      for (j = 0; j < numInputs; j++) {
-        DVPush(&singleInput, allInput.data[i + j]);
-      }
-      train(&perc, &singleInput, answers.data[i / numInputs]);
-      if (DEBUG) {
-        printf("%d ", i / numInputs);
-      }
-    }
-    if(DEBUG) {
-      printf("----- ----- ----- -----\n");
-      printf("Training done\n");
-    }
-    readAndTest(&perc, scale);
-    //readAndTestFromConsole(&perc, scale);
-}
 
 // END PERCEPTRON
 
 typedef struct {
     int layers;
-    IVector widths;
+    int widths[NMAX];
     Perceptron percs[NMAX][NMAX];
 } Network;
 
@@ -216,19 +181,18 @@ typedef struct {
 initNetwork(Network* nw, int layers, int widths[NMAX]) {
   int i;
   nw->layers = layers;
-  initIVector(&nw->widths);
   // Set width array to width input plus an addition bias
   for (i = 0; i < layers; i++) {
     if (i < layers - 1 && i != 0) { // First layer already has bias included
-      IVPush(&nw->widths, widths[i] + 1);
+      nw->widths[i] = widths[i] + 1;
     } else { // Output layer has not bias neuron
-      IVPush(&nw->widths, widths[i]);
+      nw->widths[i] = widths[i];
     }
   }
   // Set each input node weight to 1, since input nodes do not have weights
   for (i = 0; i < nw->widths[0]; i++) {
     initDVector(&nw->percs[0][i].weights);
-    DVPush(&nw->percs[0][i].weights, 1)
+    DVPush(&nw->percs[0][i].weights, 1);
   }
   int layer;
   int neuron;
@@ -246,8 +210,8 @@ double fwPropagate(Network* nw, DVector* inputs) {
   int layer, neu, prev;
   // Pass input through for input layer
   for (neu = 0; neu < nw->widths[0]; neu++) {
-    nw->percs[0][neu].out = inputs[neu];
-    nw->percs[0][neu].total = inputs[neu];
+    nw->percs[0][neu].out = inputs->data[neu];
+    nw->percs[0][neu].total = inputs->data[neu];
   }
   // Set the output of each bias to 1;
   for (layer = 1; layer < nw->layers; layer++) {
@@ -261,14 +225,15 @@ double fwPropagate(Network* nw, DVector* inputs) {
       // Adding each output from prev layer and calculating the tanh
       double total = 0;
       for (prev = 0; prev < nw->widths[layer]; prev++) {
-        double weight = nw->percs[layer][neu].weights[prev];
-        double out = nw->precs[layer - 1][prev].out;
+        double weight = nw->percs[layer][neu].weights.data[prev];
+        double out = nw->percs[layer - 1][prev].out;
         total += out * weight;
-        nw->precs[layer][neu].total += total;
-        nw->precs[layer][neu].out += output(total);
+        nw->percs[layer][neu].total += total;
+        nw->percs[layer][neu].out += output(total);
       }
     }
   }
+  return nw->percs[nw->layers][0].out;
 }
 
 void getPercInput(Network* nw, DVector* input, int layer) {
@@ -290,7 +255,7 @@ void bwPropagation(Network* nw, double answer) {
     nw->percs[nw->layers - 1][neu].delta = delta;
     // For each weight of a node calculate new weight
     for (w = 0; w < nw->widths[layers - 2]; w++) {
-      double prevWeight = nw->percs[layers - 1][neu].weights[w];
+      double prevWeight = nw->percs[layers - 1][neu].weights.data[w];
       double out_ji = nw->percs[layers - 2][w].out;
       newWeights[layers - 1][neu][w] = prevWeight + LR * delta * out_ji;
     }
@@ -298,7 +263,7 @@ void bwPropagation(Network* nw, double answer) {
   // Calculate new weights for the rest of the nw excluding input layer
   for (layer = layers - 2; layer > 0; layer--) {
     for (neu = 0; neu < nw->widths[layer] - 1; neu++) {
-      double net_i = nw-percs[layer][neu].total;
+      double net_i = nw->percs[layer][neu].total;
       double dw_ji = 0;
       // If the next layer is not the output layer, bias should be skipped
       int offset = 0;
@@ -308,13 +273,13 @@ void bwPropagation(Network* nw, double answer) {
       // Calculate the sum of all delta * weight values going from i to j
       for (out_ji = 0; out_ji < nw->widths[layer + 1] + offset; out_ji++) {
           double delta_ji = nw->percs[layer + 1][out_ji].delta;
-          double w_ji = nw->percs[layer + 1][out_ji].weights[neu];
+          double w_ji = nw->percs[layer + 1][out_ji].weights.data[neu];
           dw_ji +=  delta_ji * w_ji;
       }
       double delta = calcDTanh(net_i) * dw_ji;
       // For each weight of a node calculate new weight
       for (w = 0; w < nw->widths[layer - 1]; w++) {
-        double prevWeight = nw->percs[layer][neu].weights[w];
+        double prevWeight = nw->percs[layer][neu].weights.data[w];
         double out_k = nw->percs[layer - 1][w].out;
         newWeights[layer][neu][w] = prevWeight + LR * delta * out_k;
       }
@@ -324,18 +289,44 @@ void bwPropagation(Network* nw, double answer) {
   for (layer = layers - 2; layer > 0; layer++) {
     for (neu = 0; neu < nw->widths[layer] - 1; neu++) {
       for (w = 0; w < nw->widths[layer - 1]; w++) {
-        nw->percs[layer][neu].weights[w] = newWeights[layer][neu][w];
+        nw->percs[layer][neu].weights.data[w] = newWeights[layer][neu][w];
       }
     }
   }
 }
 
-void train(Network* nw, DVector* inputs, double answer) {
+void trainNetwork(Network* nw, DVector* inputs, double answer) {
   fwPropagate(nw, inputs);
   bwPropagation(nw, answer);
 }
 
 // END NETWORK
+
+double readTrainingDataFromConsole(DVector*, DVector*);
+double readTrainingData(DVector*, DVector*);
+void readAndTest(Network*, double);
+void readAndTestFromConsole(Network*, double);
+void classifyNLPoints() {
+  int width[NMAX] = {3, 3, 1, 0, 0};
+  int layers = 3;
+  Network nw;
+  initNetwork(&nw, layers, width);
+  DVector inputs;
+  initDVector(&inputs);
+  DVector answers;
+  initDVector(&answers);
+  double scale = readTrainingData(&inputs, &answers);
+  int i;
+  for (i = 0; i < answers.size; i += 3) {
+    DVector input;
+    initDVector(&input);
+    DVPush(&input, inputs.data[i]);
+    DVPush(&input, inputs.data[i + 1]);
+    DVPush(&input, inputs.data[i + 2]);
+    trainNetwork(&nw, &input, answers.data[i / 3]);
+  }
+  readAndTest(&nw, scale);
+}
 
 // Reads training data
 double readTrainingData(DVector* input, DVector* answers) {
@@ -381,7 +372,7 @@ double readTrainingData(DVector* input, DVector* answers) {
 }
 
 // Reads coordinates from file and guesses output
-void readAndTest(Perceptron* perc, double scale) {
+void readAndTest(Network* nw, double scale) {
   FILE* filePtr;
   size_t length = 0;
   char* line = 0;
@@ -428,7 +419,7 @@ void readAndTest(Perceptron* perc, double scale) {
       printf("----- ----- ----- -----\n");
       printf("%lf %lf\n", singleInput.data[0], singleInput.data[1]);
     }
-    double ff = output(calcTotal(perc, &singleInput));
+    double ff = fwPropagate(nw, &singleInput);
     if (ff > 0.0) {
       printf("+1\n");
     } else {
@@ -487,7 +478,7 @@ double readTrainingDataFromConsole(DVector* input, DVector* answers) {
   return max;
 }
 
-void readAndTestFromConsole(Perceptron* perc, double scale) {
+void readAndTestFromConsole(Network* nw, double scale) {
   char str[20];
   while (scanf("%s", str) != EOF) {
     DVector singleInput;
@@ -503,7 +494,7 @@ void readAndTestFromConsole(Perceptron* perc, double scale) {
       printf("----- ----- ----- -----\n");
       printf("%lf %lf\n", singleInput.data[0], singleInput.data[1]);
     }
-    double ff = output(calcTotal(perc, &singleInput));
+    double ff = fwPropagate(nw, &singleInput);
     if (ff > 0.0) {
       printf("+1\n");
     } else {
@@ -515,6 +506,6 @@ void readAndTestFromConsole(Perceptron* perc, double scale) {
 
 int main() {
   srand(time(0));
-  runPerceptron();
+  classifyNLPoints();
   return (0);
 }
