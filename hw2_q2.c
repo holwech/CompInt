@@ -30,9 +30,9 @@ void DVSetAll(DVector* vector, double val, int end) {
 
 void DVScale(DVector* vector, double scale, int numInputs) {
     int i;
-    for(i = 0; i < vector->size; i += numInputs) {
+    for(i = 0; i < vector->size; i++) {
       if ((i + 1) % numInputs == 0) {
-        i++;
+        // Do no scale bias
       } else {
         vector->data[i] = vector->data[i] / scale;
       }
@@ -213,27 +213,39 @@ double fwPropagate(Network* nw, DVector* inputs) {
     nw->percs[0][neu].out = inputs->data[neu];
     nw->percs[0][neu].total = inputs->data[neu];
   }
-  // Set the output of each bias to 1;
-  for (layer = 1; layer < nw->layers; layer++) {
+  // Set the output of each bias to 1
+  for (layer = 1; layer < nw->layers - 1; layer++) {
     nw->percs[layer][nw->widths[layer] - 1].out = 1;
     nw->percs[layer][nw->widths[layer] - 1].total = 1;
   }
   // Calculate forward propagation
   for(layer = 1; layer < nw->layers; layer++) {
     // For each neuron in layer
-    for (neu = 0; neu < nw->widths[layer] - 1; neu++) {
+    int offset = 0;
+    // For last layer, exclude bias node
+    if (layer < nw->layers - 1) {
+      offset = -1;
+    }
+    for (neu = 0; neu < nw->widths[layer] + offset; neu++) {
       // Adding each output from prev layer and calculating the tanh
       double total = 0;
-      for (prev = 0; prev < nw->widths[layer]; prev++) {
+      for (prev = 0; prev < nw->widths[layer - 1]; prev++) {
         double weight = nw->percs[layer][neu].weights.data[prev];
         double out = nw->percs[layer - 1][prev].out;
         total += out * weight;
-        nw->percs[layer][neu].total += total;
-        nw->percs[layer][neu].out += output(total);
+      }
+      nw->percs[layer][neu].total += total;
+      if (0) { // DEBUG START
+        printf("Total: %lf, Out: %lf\n", total, output(total));
+      } // DEBUG END
+      if(layer == nw->layers - 1) {
+        nw->percs[layer][neu].out = activate(output(total));
+      } else {
+        nw->percs[layer][neu].out = output(total);
       }
     }
   }
-  return nw->percs[nw->layers][0].out;
+  return nw->percs[nw->layers - 1][0].out;
 }
 
 void getPercInput(Network* nw, DVector* input, int layer) {
@@ -260,21 +272,25 @@ void bwPropagation(Network* nw, double answer) {
       newWeights[layers - 1][neu][w] = prevWeight + LR * delta * out_ji;
     }
   }
+  int printL = layers - 2;
+  int printN = 0;
   // Calculate new weights for the rest of the nw excluding input layer
   for (layer = layers - 2; layer > 0; layer--) {
     for (neu = 0; neu < nw->widths[layer] - 1; neu++) {
       double net_i = nw->percs[layer][neu].total;
       double dw_ji = 0;
+      int out_ji;
       // If the next layer is not the output layer, bias should be skipped
-      int offset = 0;
-      if (layer + 1  == layers - 1) {
-        offset = -1;
+      int offset = -1;
+      if (layer == layers - 2) {
+        offset = 0;
       }
       // Calculate the sum of all delta * weight values going from i to j
       for (out_ji = 0; out_ji < nw->widths[layer + 1] + offset; out_ji++) {
           double delta_ji = nw->percs[layer + 1][out_ji].delta;
           double w_ji = nw->percs[layer + 1][out_ji].weights.data[neu];
           dw_ji +=  delta_ji * w_ji;
+          printf("dw_ji: %lf, delta_ji: %lf, w_ji: %lf\n", dw_ji, delta_ji, w_ji);
       }
       double delta = calcDTanh(net_i) * dw_ji;
       // For each weight of a node calculate new weight
@@ -282,21 +298,96 @@ void bwPropagation(Network* nw, double answer) {
         double prevWeight = nw->percs[layer][neu].weights.data[w];
         double out_k = nw->percs[layer - 1][w].out;
         newWeights[layer][neu][w] = prevWeight + LR * delta * out_k;
+        printf("DELTAW: %lf\n", LR * delta * out_k);
+        if (DEBUG) { // DEBUG START
+          if (printL == layer) {
+            printf("----- ----- ----- -----\n");
+            printf("Layer: %d\n", printL);
+            printL++;
+          }
+          if (printN == neu) {
+            printf("----- neuron %d -----\n", neu);
+            printN++;
+            printf("net_i: %lf, dw_ji: %lf, delta: %lf\n", net_i, dw_ji, delta);
+          }
+          printf("Old weight: %lf, New weight: %lf\n",
+                  prevWeight,
+                  newWeights[layer][neu][w]);
+        }
       }
+      printf("\n");
     }
   }
   // update weights
-  for (layer = layers - 2; layer > 0; layer++) {
+  printL = layers - 2;
+  printN = 0;
+  for (layer = layers - 2; layer > 0; layer--) {
     for (neu = 0; neu < nw->widths[layer] - 1; neu++) {
       for (w = 0; w < nw->widths[layer - 1]; w++) {
+        if (0) { // DEBUG START
+          if (printL == layer) {
+            printf("----- ----- ----- -----\n");
+            printf("Layer: %d\n", printL);
+            printL++;
+          }
+          if (printN == neu) {
+            printf("----- neuron %d -----\n", neu);
+            printN++;
+          }
+          printf("Old weight: %lf, New weight: %lf\n",
+                  nw->percs[layer][neu].weights.data[w],
+                  newWeights[layer][neu][w]);
+        } // DEBUG END
         nw->percs[layer][neu].weights.data[w] = newWeights[layer][neu][w];
       }
     }
   }
 }
 
+printNetwork(Network* nw) {
+  printf("----- NETWORK -----\n");
+  printf("Layers: %d, ", nw->layers);
+  printf("Widths: ");
+  int i;
+  for (i = 0; i < NMAX; i++) {
+    printf("%d, ", nw->widths[i]);
+  }
+  printf("\n");
+  int layer, neu, w;
+  for (layer = 0; layer < nw->layers; layer++) {
+    printf("----- L: %d -----\n", layer);
+    for (neu = 0; neu < nw->widths[layer]; neu++) {
+      printf(" + N: %d\n", neu);
+      double total = nw->percs[layer][neu].total;
+      double out = nw->percs[layer][neu].out;
+      double delta = nw->percs[layer][neu].delta;
+      printf("Total: %lf, Out: %lf, Delta: %lf\n", total, out, delta);
+      if (layer > 0)  {
+        printf("Input: ");
+        for (i = 0; i < nw->percs[layer][neu].weights.size; i++) {
+          printf("%lf, ", nw->percs[layer - 1][i].out);
+        }
+        printf("\n");
+      }
+      printf("Weights: ");
+      for (w = 0; w < nw->percs[layer][neu].weights.size; w++) {
+        printf("%lf, ", nw->percs[layer][neu].weights.data[w]);
+      }
+      printf("\n");
+    }
+  }
+  printf("----- END -----\n\n");
+}
+
 void trainNetwork(Network* nw, DVector* inputs, double answer) {
-  fwPropagate(nw, inputs);
+  if (DEBUG) {
+    printf("================================\n");
+  }
+  double guessed = fwPropagate(nw, inputs);
+  printNetwork(nw);
+  if (DEBUG) {
+    printf("Guessed/Answer: %lf/%lf\n", guessed, answer);
+  }
   bwPropagation(nw, answer);
 }
 
@@ -311,6 +402,7 @@ void classifyNLPoints() {
   int layers = 3;
   Network nw;
   initNetwork(&nw, layers, width);
+  printNetwork(&nw);
   DVector inputs;
   initDVector(&inputs);
   DVector answers;
@@ -365,7 +457,7 @@ double readTrainingData(DVector* input, DVector* answers) {
   if (DEBUG) {
     int p;
     for (p = 0; p < input->size; p += 3) {
-      printf("%lf %lf %lf\n", input->data[p], input->data[p + 1], answers->data[p / 3]);
+      printf("%lf %lf %lf a: %lf\n", input->data[p], input->data[p + 1], input->data[p + 2], answers->data[p / 3]);
     }
   }
   return max;
