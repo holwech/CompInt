@@ -3,8 +3,9 @@
 #include <time.h>
 #include <math.h>
 
-#define DEBUG 1
-#define NMAX 5
+#define DEBUG 0
+#define ANS 1
+#define NMAX 10
 
 
 typedef struct {
@@ -234,12 +235,12 @@ double fwPropagate(Network* nw, DVector* inputs) {
         double out = nw->percs[layer - 1][prev].out;
         total += out * weight;
       }
-      nw->percs[layer][neu].total += total;
+      nw->percs[layer][neu].total = total;
       if (0) { // DEBUG START
         printf("Total: %lf, Out: %lf\n", total, output(total));
       } // DEBUG END
       if(layer == nw->layers - 1) {
-        nw->percs[layer][neu].out = activate(output(total));
+        nw->percs[layer][neu].out = output(total);
       } else {
         nw->percs[layer][neu].out = output(total);
       }
@@ -258,24 +259,43 @@ void getPercInput(Network* nw, DVector* input, int layer) {
 void bwPropagation(Network* nw, double answer) {
   int neu, w, layer, out_ji;
   int layers = nw->layers;
-  double LR = 0.0009;
+  double LR = 0.009;
   double newWeights[NMAX][NMAX][NMAX];
+  int printCount = 0;
+  if (DEBUG) { // DEBUG START
+    printf("----- ----- ----- -----\n");
+    printf("Layer: %d\n", layers - 1);
+  } // DEBUG END
   // Calculates the delta for each node of the output layer
   for (neu = 0; neu < nw->widths[layers - 1]; neu++) {
     double net_o = nw->percs[layers - 1][neu].total;
-    double delta = calcGradient(net_o, answer);
+    double out = nw->percs[layers - 1][neu].out;
+    double delta = 2 * (answer - out);
     nw->percs[nw->layers - 1][neu].delta = delta;
+    if (DEBUG) { // DEBUG START
+      printf("----- neuron %d -----\n", neu);
+      printf("net_o: %lf, delta: %lf, error: %lf\n", net_o, delta, answer - out);
+      printCount++;
+    }
     // For each weight of a node calculate new weight
     for (w = 0; w < nw->widths[layers - 2]; w++) {
       double prevWeight = nw->percs[layers - 1][neu].weights.data[w];
       double out_ji = nw->percs[layers - 2][w].out;
       newWeights[layers - 1][neu][w] = prevWeight + LR * delta * out_ji;
+      if (DEBUG) { // DEBUG START
+        printf("Old weight: %lf, New weight: %lf Delta weight: %lf\n",
+                prevWeight,
+                newWeights[layers - 1][neu][w],
+                LR * delta * out_ji);
+      } // DEBUG END
     }
   }
-  int printL = layers - 2;
-  int printN = 0;
+  printCount = 0;
   // Calculate new weights for the rest of the nw excluding input layer
   for (layer = layers - 2; layer > 0; layer--) {
+    if(DEBUG) { // DEBUG START
+      printf("Layer: %d\n", layer);
+    } // DEBUG END
     for (neu = 0; neu < nw->widths[layer] - 1; neu++) {
       double net_i = nw->percs[layer][neu].total;
       double dw_ji = 0;
@@ -287,40 +307,37 @@ void bwPropagation(Network* nw, double answer) {
       }
       // Calculate the sum of all delta * weight values going from i to j
       for (out_ji = 0; out_ji < nw->widths[layer + 1] + offset; out_ji++) {
-          double delta_ji = nw->percs[layer + 1][out_ji].delta;
+          double delta_j = nw->percs[layer + 1][out_ji].delta;
           double w_ji = nw->percs[layer + 1][out_ji].weights.data[neu];
-          dw_ji +=  delta_ji * w_ji;
-          printf("dw_ji: %lf, delta_ji: %lf, w_ji: %lf\n", dw_ji, delta_ji, w_ji);
+          dw_ji +=  delta_j * w_ji;
+          if (DEBUG && printCount == neu) { // DEBUG START
+            printf("----- neuron %d -----\n", neu);
+            printf("net_i: %lf, dw_ji: %lf, delta: ", net_i, dw_ji);
+          } // DEBUG END
       }
-      double delta = calcDTanh(net_i) * dw_ji;
+      double delta = calcDTanh(nw->percs[layer][neu].out) * dw_ji;
+      if (DEBUG && printCount == neu) {
+        printf("%lf\n");
+        printCount++;
+      }
       // For each weight of a node calculate new weight
       for (w = 0; w < nw->widths[layer - 1]; w++) {
         double prevWeight = nw->percs[layer][neu].weights.data[w];
         double out_k = nw->percs[layer - 1][w].out;
         newWeights[layer][neu][w] = prevWeight + LR * delta * out_k;
-        printf("DELTAW: %lf\n", LR * delta * out_k);
         if (DEBUG) { // DEBUG START
-          if (printL == layer) {
-            printf("----- ----- ----- -----\n");
-            printf("Layer: %d\n", printL);
-            printL++;
-          }
-          if (printN == neu) {
-            printf("----- neuron %d -----\n", neu);
-            printN++;
-            printf("net_i: %lf, dw_ji: %lf, delta: %lf\n", net_i, dw_ji, delta);
-          }
-          printf("Old weight: %lf, New weight: %lf\n",
+          printf("Old weight: %lf, New weight: %lf Delta weight: %lf\n",
                   prevWeight,
-                  newWeights[layer][neu][w]);
-        }
+                  newWeights[layer][neu][w],
+                  LR * delta * out_k);
+        } // DEBUG END
       }
-      printf("\n");
+      if (DEBUG) { printf("\n"); }
     }
   }
   // update weights
-  printL = layers - 2;
-  printN = 0;
+  int printL = layers - 2;
+  int printN = 0;
   for (layer = layers - 2; layer > 0; layer--) {
     for (neu = 0; neu < nw->widths[layer] - 1; neu++) {
       for (w = 0; w < nw->widths[layer - 1]; w++) {
@@ -384,8 +401,8 @@ void trainNetwork(Network* nw, DVector* inputs, double answer) {
     printf("================================\n");
   }
   double guessed = fwPropagate(nw, inputs);
-  printNetwork(nw);
   if (DEBUG) {
+    printNetwork(nw);
     printf("Guessed/Answer: %lf/%lf\n", guessed, answer);
   }
   bwPropagation(nw, answer);
@@ -398,24 +415,26 @@ double readTrainingData(DVector*, DVector*);
 void readAndTest(Network*, double);
 void readAndTestFromConsole(Network*, double);
 void classifyNLPoints() {
-  int width[NMAX] = {3, 3, 1, 0, 0};
+  int width[NMAX] = {3, 3, 2, 1, 0, 0, 0, 0, 0, 0};
   int layers = 3;
   Network nw;
   initNetwork(&nw, layers, width);
-  printNetwork(&nw);
   DVector inputs;
   initDVector(&inputs);
   DVector answers;
   initDVector(&answers);
   double scale = readTrainingData(&inputs, &answers);
-  int i;
-  for (i = 0; i < answers.size; i += 3) {
-    DVector input;
-    initDVector(&input);
-    DVPush(&input, inputs.data[i]);
-    DVPush(&input, inputs.data[i + 1]);
-    DVPush(&input, inputs.data[i + 2]);
-    trainNetwork(&nw, &input, answers.data[i / 3]);
+  int j;
+  for (j = 0; j < 10000; j++) {
+    int i;
+    for (i = 0; i < answers.size; i += 3) {
+      DVector input;
+      initDVector(&input);
+      DVPush(&input, inputs.data[i]);
+      DVPush(&input, inputs.data[i + 1]);
+      DVPush(&input, inputs.data[i + 2]);
+      trainNetwork(&nw, &input, answers.data[i / 3]);
+    }
   }
   readAndTest(&nw, scale);
 }
@@ -507,7 +526,7 @@ void readAndTest(Network* nw, double scale) {
     DVPush(&singleInput, y);
     DVPush(&singleInput, 1);
     DVScale(&singleInput, scale, 3);
-    if(DEBUG) {
+    if(DEBUG || ANS) {
       printf("----- ----- ----- -----\n");
       printf("%lf %lf\n", singleInput.data[0], singleInput.data[1]);
     }
@@ -517,7 +536,7 @@ void readAndTest(Network* nw, double scale) {
     } else {
       printf("-1\n");
     }
-    if (DEBUG && (sread = getline(&sline, &slength, sfilePtr)) != -1) {
+    if ((DEBUG || ANS) && (sread = getline(&sline, &slength, sfilePtr)) != -1) {
       printf("%s\n", sline);
       double s;
       sscanf(sline, "%lf", &s);
@@ -527,7 +546,7 @@ void readAndTest(Network* nw, double scale) {
       totalCount++;
     }
   }
-  if (DEBUG) {
+  if (DEBUG || ANS) {
     printf("%d/%d\n", correct, totalCount);
   }
   fclose(filePtr);
