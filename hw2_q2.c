@@ -80,6 +80,7 @@ typedef struct {
   double total;
   double delta;
   int bias;
+  double dw_ji;
 } Perceptron;
 
 double sigmoid(double z) {
@@ -248,12 +249,6 @@ double fwPropagate(Network* nw, DVector* input) {
 }
 
 
-void getPercInput(Network* nw, DVector* input, int layer) {
-  int i;
-  for (i = 0; i < nw->widths[layer - 1]; i++) {
-    DVPush(input, nw->percs[layer - 1][i].out);
-  }
-}
 
 void bwPropagation(Network* nw, double answer) {
   int layer, neu, w;
@@ -287,6 +282,7 @@ void bwPropagation(Network* nw, double answer) {
         double d_j = nw->percs[layer + 1][j].delta;
         dw_ji += d_j * w_ji;
       }
+      nw->percs[layer][neu].dw_ji = dw_ji;
       nw->percs[layer][neu].delta = dw_ji * calcDTanh(nw->percs[layer][neu].total);
       for (w = 0; w < nw->widths[layer - 1]; w++) {
         double oldWeight = nw->percs[layer][neu].weights.data[w];
@@ -305,48 +301,50 @@ void bwPropagation(Network* nw, double answer) {
   }
 }
 
-printNetwork(Network* nw) {
+
+void printNetwork(Network nw) {
+  int layer, neu, w;
   printf("----- NETWORK -----\n");
-  printf("Layers: %d, ", nw->layers);
+  printf("Layers: %d\n", nw.layers);
   printf("Widths: ");
-  int i;
-  for (i = 0; i < NMAX; i++) {
-    printf("%d, ", nw->widths[i]);
+  for (layer = 0; layer < nw.layers; layer++) {
+    printf("%d, ", nw.widths[layer]);
   }
   printf("\n");
-  int layer, neu, w;
-  for (layer = 0; layer < nw->layers; layer++) {
-    printf("----- L: %d -----\n", layer);
-    for (neu = 0; neu < nw->widths[layer]; neu++) {
+  for (layer = 0; layer < nw.layers; layer++) {
+    for (neu = 0; neu < nw.widths[layer]; neu++) {
       printf(" + N: %d\n", neu);
-      double total = nw->percs[layer][neu].total;
-      double out = nw->percs[layer][neu].out;
-      double delta = nw->percs[layer][neu].delta;
-      printf("Total: %lf, Out: %lf, Delta: %lf\n", total, out, delta);
-      if (layer > 0)  {
-        printf("Input: ");
-        for (i = 0; i < nw->percs[layer][neu].weights.size; i++) {
-          printf("%lf, ", nw->percs[layer - 1][i].out);
+      double total = nw.percs[layer][neu].total;
+      double out = nw.percs[layer][neu].out;
+      double delta = nw.percs[layer][neu].delta;
+      double dw_ji = nw.percs[layer][neu].dw_ji;
+      printf("Total: %lf, Out: %lf, Delta: %lf, dw_ji: %lf\n", total, out, delta, dw_ji);
+      if (layer > 0) {
+        printf("Input:  ");
+        int i;
+        for (i = 0; i < nw.widths[layer - 1]; i++) {
+          printf("%lf, ", nw.percs[layer - 1][i].out);
         }
         printf("\n");
       }
       printf("Weights: ");
-      for (w = 0; w < nw->percs[layer][neu].weights.size; w++) {
-        printf("%lf, ", nw->percs[layer][neu].weights.data[w]);
+      for (w = 0; w < nw.widths[layer - 1]; w++) {
+        printf("%lf, ", nw.percs[layer][neu].weights.data[w]);
       }
-      printf("\n");
+      printf("\n\n");
     }
+    printf("-----\n");
   }
   printf("----- END -----\n\n");
 }
 
 void trainNetwork(Network* nw, DVector* inputs, double answer) {
   if (DEBUG) {
-    printf("================================\n");
+    printf("================================\n\n");
   }
   double guessed = fwPropagate(nw, inputs);
-  if (DEBUG) {
-    printNetwork(nw);
+  if (1) {
+    printNetwork(*nw);
     printf("Guessed/Answer: %lf/%lf\n", guessed, answer);
   }
   bwPropagation(nw, answer);
@@ -369,7 +367,7 @@ void classifyNLPoints() {
   initDVector(&answers);
   double scale = readTrainingData(&inputs, &answers);
   int j;
-  for (j = 0; j < 100; j++) {
+  for (j = 0; j < 1; j++) {
     int i;
     for (i = 0; i < answers.size; i += 3) {
       DVector input;
@@ -566,6 +564,13 @@ int main() {
 }
 
 
+void getPercInput(Network* nw, DVector* input, int layer) {
+  int i;
+  for (i = 0; i < nw->widths[layer - 1]; i++) {
+    DVPush(input, nw->percs[layer - 1][i].out);
+  }
+}
+
 double fwPropagateOld(Network* nw, DVector* inputs) {
   int layer, neu, prev;
   // Pass input through for input layer
@@ -742,4 +747,40 @@ void bwPropagationOld(Network* nw, double answer) {
       }
     }
   }
+}
+
+
+void printNetworkOld(Network* nw) {
+  printf("----- NETWORK -----\n");
+  printf("Layers: %d, ", nw->layers);
+  printf("Widths: ");
+  int i;
+  for (i = 0; i < NMAX; i++) {
+    printf("%d, ", nw->widths[i]);
+  }
+  printf("\n");
+  int layer, neu, w;
+  for (layer = 0; layer < nw->layers; layer++) {
+    printf("----- L: %d -----\n", layer);
+    for (neu = 0; neu < nw->widths[layer]; neu++) {
+      printf(" + N: %d\n", neu);
+      double total = nw->percs[layer][neu].total;
+      double out = nw->percs[layer][neu].out;
+      double delta = nw->percs[layer][neu].delta;
+      printf("Total: %lf, Out: %lf, Delta: %lf\n", total, out, delta);
+      if (layer > 0)  {
+        printf("Input: ");
+        for (i = 0; i < nw->percs[layer][neu].weights.size; i++) {
+          printf("%lf, ", nw->percs[layer - 1][i].out);
+        }
+        printf("\n");
+      }
+      printf("Weights: ");
+      for (w = 0; w < nw->percs[layer][neu].weights.size; w++) {
+        printf("%lf, ", nw->percs[layer][neu].weights.data[w]);
+      }
+      printf("\n");
+    }
+  }
+  printf("----- END -----\n\n");
 }
