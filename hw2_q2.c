@@ -343,7 +343,7 @@ void trainNetwork(Network* nw, DVector* inputs, double answer) {
     printf("================================\n\n");
   }
   double guessed = fwPropagate(nw, inputs);
-  if (1) {
+  if (DEBUG) {
     printNetwork(*nw);
     printf("Guessed/Answer: %lf/%lf\n", guessed, answer);
   }
@@ -358,7 +358,7 @@ void readAndTest(Network*, double);
 void readAndTestFromConsole(Network*, double);
 void classifyNLPoints() {
   int width[NMAX] = {3, 3, 1, 0, 0, 0, 0, 0, 0, 0};
-  int layers = 3;
+  int layers = 4;
   Network nw;
   initNetwork(&nw, layers, width);
   DVector inputs;
@@ -705,7 +705,6 @@ void bwPropagationOld(Network* nw, double answer) {
       }
       double delta = calcDTanh(nw->percs[layer][neu].out) * dw_ji;
       if (DEBUG && printCount == neu) {
-        printf("%lf\n");
         printCount++;
       }
       // For each weight of a node calculate new weight
