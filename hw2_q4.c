@@ -1,11 +1,13 @@
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
 #include <math.h>
 
 #define DEBUG 0
-#define ANS 1
+#define ANS 0
 #define NMAX 10
+#define AVG 100
 
 
 typedef struct {
@@ -107,19 +109,16 @@ double readTrainingData(DVector* input, DVector* answers) {
   }
   double max = 0;
   while ((read = getline(&line, &length, filePtr)) != -1) {
-    double x, y, a;
+    double x, a;
     char ch;
-    sscanf(line, "%lf%c%lf%c%lf", &x, &ch, &y, &ch, &a);
-    if (x == 0.0 && y == 0.0 && a == 0.0) {
+    sscanf(line, "%lf%c%lf", &x, &ch, &a);
+    if (x == 0.0 && a == 0.0) {
       break;
     }
     DVPush(input, x);
-    DVPush(input, y);
     DVPush(answers, a);
-    if (fabs(x) > max && fabs(x) > fabs(y)) {
+    if (fabs(x) > max) {
       max = fabs(x);
-    } else if (fabs(y) > max) {
-      max = fabs(y);
     }
   }
   fclose(filePtr);
@@ -127,10 +126,11 @@ double readTrainingData(DVector* input, DVector* answers) {
       free(line);
   }
   DVScale(input, max);
-  if (DEBUG) {
+	DVScale(answers, max);
+  if (0) {
     int p;
-    for (p = 0; p < input->size; p += 2) {
-      printf("%lf %lf a: %lf\n", input->d[p], input->d[p + 1], answers->d[p / 2]);
+    for (p = 0; p < input->size; p += 1) {
+      printf("%lf a: %lf\n", input->d[p], answers->d[p]);
     }
   }
   return max;
@@ -148,8 +148,6 @@ void readAndTest(Network* nw, double scale) {
   char* sline = 0;
   int sread;
 
-  int correct = 0;
-  int totalCount = 0;
 
   filePtr = fopen("input.txt", "r");
   if (filePtr == NULL) {
@@ -160,48 +158,28 @@ void readAndTest(Network* nw, double scale) {
     printf("File open failed\n");
   }
   while ((read = getline(&line, &length, filePtr)) != -1) {
-    double x, y;
-    char ch;
-    sscanf(line, "%lf%c%lf", &x, &ch, &y);
+    double x;
+    sscanf(line, "%lf", &x);
     if(0) {
-      printf("%lf %lf\n", x, y);
+      printf("%lf\n", x);
     }
-    if (x == 0.0 && y == 0.0) {
+    if (x == 0.0) {
       break;
     }
   }
   while ((read = getline(&line, &length, filePtr)) != -1) {
     DVector singleInput;
     initDVector(&singleInput);
-    double x, y;
-    char ch;
-    sscanf(line, "%lf%c%lf", &x, &ch, &y);
+    double x;
+    sscanf(line, "%lf", &x);
     DVPush(&singleInput, x);
-    DVPush(&singleInput, y);
     DVScale(&singleInput, scale);
-    if(DEBUG || ANS) {
+    if(0) {
       printf("----- ----- ----- -----\n");
-      printf("%lf %lf\n", singleInput.d[0], singleInput.d[1]);
+      printf("%lf\n", singleInput.d[0]);
     }
     double ff = fwp(nw, &singleInput);
-    if (ff > 0.0) {
-      printf("+1\n");
-    } else {
-      printf("-1\n");
-    }
-    if ((DEBUG || ANS) && (sread = getline(&sline, &slength, sfilePtr)) != -1) {
-      printf("%s\n", sline);
-      double s;
-      sscanf(sline, "%lf", &s);
-      if ((s == 1.0 && ff > 0.0) || (s == -1.0 && ff <= 0.0)) {
-        correct++;
-      }
-      totalCount++;
-			printf("FF: %lf\n", ff);
-    }
-  }
-  if (DEBUG || ANS) {
-    printf("%d/%d\n", correct, totalCount);
+		printf("%lf\n", ff * scale);
   }
   fclose(filePtr);
   if (line) {
@@ -216,26 +194,24 @@ void readAndTest(Network* nw, double scale) {
 double readTrainingDataFromConsole(DVector* input, DVector* answers) {
   double max = 0;
   while (1) {
-    double x, y, a;
+    double x, a;
     char ch;
-    scanf("%lf%c%lf%c%lf", &x, &ch, &y, &ch, &a);
-    if (x == 0.0 && y == 0.0 && a == 0.0) {
+    scanf("%lf%c%lf", &x, &ch, &a);
+    if (x == 0.0 && a == 0.0) {
       break;
     }
     DVPush(input, x);
-    DVPush(input, y);
     DVPush(answers, a);
-    if (fabs(x) > max && fabs(x) > fabs(y)) {
+    if (fabs(x) > max) {
       max = fabs(x);
-    } else if (fabs(y) > max) {
-      max = fabs(y);
     }
   }
   DVScale(input, max);
+	DVScale(answers, max);
   if (DEBUG) {
     int p;
-    for (p = 0; p < input->size; p += 2) {
-      printf("%lf %lf %lf\n", input->d[p], input->d[p + 1], answers->d[p / 3]);
+    for (p = 0; p < input->size; p += 1) {
+      printf("%lf %lf\n", input->d[p], answers->d[p]);
     }
   }
   return max;
@@ -246,22 +222,16 @@ void readAndTestFromConsole(Network* nw, double scale) {
   while (scanf("%s", str) != EOF) {
     DVector singleInput;
     initDVector(&singleInput);
-    double x, y;
-    char ch;
-    sscanf(str, "%lf%c%lf", &x, &ch, &y);
+    double x;
+    sscanf(str, "%lf", &x);
     DVPush(&singleInput, x);
-    DVPush(&singleInput, y);
     DVScale(&singleInput, scale);
     if(DEBUG) {
       printf("----- ----- ----- -----\n");
-      printf("%lf %lf\n", singleInput.d[0], singleInput.d[1]);
+      printf("%lf\n", singleInput.d[0]);
     }
     double ff = fwp(nw, &singleInput);
-    if (ff > 0.0) {
-      printf("+1\n");
-    } else {
-      printf("-1\n");
-    }
+		printf("%lf\n", ff * scale);
   }
 }
 
@@ -402,32 +372,83 @@ void printNetwork(Network* nw) {
   printf("----- END -----\n\n");
 }
 
-void train(Network* nw, DVector* inputs, double answer) {
-	fwp(nw, inputs);
+double train(Network* nw, DVector* inputs, double answer) {
+	double out = fwp(nw, inputs);
+	printf("Diff (A/O/D): %lf/%lf/%lf\n", answer, out, answer - out);
 	bwp(nw, answer);
+	return out;
+}
+
+double average(double diffs[AVG]) {
+	double total = 0;
+	for (int i = 0; i < AVG; i++) {
+		total += fabs(diffs[i]);
+	}
+	return total / AVG;
+}
+
+int run(Network* nw, DVector* answers, DVector* inputs, double thres) {
+	double diffs[AVG] = {0};
+	int dcount = 0;
+	int count = 1000;
+	if (inputs->size < 20) {
+		count = 100000;
+	}
+	for (int j = 0; j < count; j++) {
+		for (int i = 0; i < answers->size; i += 1) {
+			DVector input;
+			initDVector(&input);
+			DVPush(&input, inputs->d[i]);
+			diffs[dcount] = answers->d[i] - train(nw, &input, answers->d[i]);
+			dcount++;
+			printf("av: %lf, thres: %lf\n", average(diffs), thres);
+			if (dcount == AVG) {
+				dcount = 0;
+				if(average(diffs) < thres) {
+					printf("av reached\n");
+					return 1;
+				}
+			}
+		}
+	}
+	return 0;
+}
+
+void resetNetwork(Network* nw) {
+	for (int l = 0; l < nw->l - 1; l++) {
+		nw->w[l]++;
+		nw->p[l][nw->w[l] - 1].out = 1;
+		nw->p[l][nw->w[l] - 1].total = 1;
+	}
+	// Set random weights
+	for (int l = 1; l < nw->l; l++) {
+		for (int n = 0; n < nw->w[l]; n++) {
+			nw->p[l][n].w.size = 0;
+			DVSetAllRandom(&nw->p[l][n].w, nw->w[l - 1]);
+		}
+	}
 }
 
 void classifyNLPoints() {
-	Network nw;
-	int widths[NMAX] = {2, 3, 1, 0, 0, 0, 0, 0, 0, 0};
-	int layers = 3;
-	initNetwork(&nw, widths, layers);
-
   DVector inputs;
   initDVector(&inputs);
   DVector answers;
   initDVector(&answers);
-  double scale = readTrainingDataFromConsole(&inputs, &answers);
-	for (int j = 0; j < 10000; j++) {
-		for (int i = 0; i < answers.size; i += 2) {
-      DVector input;
-      initDVector(&input);
-      DVPush(&input, inputs.d[i]);
-      DVPush(&input, inputs.d[i + 1]);
-      train(&nw, &input, answers.d[i / 2]);
+  double scale = readTrainingData(&inputs, &answers);
+	Network nw;
+	int widths[NMAX] = {1, 3, 3, 2, 1, 0, 0, 0, 0, 0};
+	int layers = 5;
+	double thres = 0.02;
+	initNetwork(&nw, widths, layers);
+	for(int tries = 0; tries < 10; tries++) {
+		int done = run(&nw, &answers, &inputs, thres);
+		if (done == 1) {
+			readAndTest(&nw, scale);
+			return;
 		}
+		resetNetwork(&nw);
 	}
-	readAndTestFromConsole(&nw, scale);
+	readAndTest(&nw, scale);
 }
 
 int main() {

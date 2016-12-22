@@ -32,7 +32,6 @@ void DVScale(DVector* vector, double scale, int numInputs) {
     int i;
     for(i = 0; i < vector->size; i += numInputs) {
       vector->data[i] = vector->data[i] / scale;
-      vector->data[i + 1] = vector->data[i + 1] / scale;
     }
 }
 
@@ -110,7 +109,7 @@ double feedForward(double total) {
 }
 
 
-void train(Perceptron* perc, DVector* inputs, double answer) {
+double train(Perceptron* perc, DVector* inputs, double answer) {
   if (DEBUG) {
     printf("----- ----- ----- -----\n");
   }
@@ -138,6 +137,7 @@ void train(Perceptron* perc, DVector* inputs, double answer) {
   for(i = 0; i < perc->weights.size; i++) {
     perc->weights.data[i] += LR * grad * inputs->data[i];
   }
+	printf("Diff (A/O/D): %lf/%lf/%lf\n", answer, ff, answer - ff);
   if (DEBUG) {
     printf("After weights: ");
     int p;
@@ -146,6 +146,15 @@ void train(Perceptron* perc, DVector* inputs, double answer) {
     }
     printf("\n");
   }
+	return ff;
+}
+
+double average(double data[200]) {
+	double total = 0;
+	for (int i = 0; i < 200; i++) {
+		total += data[i];
+	}
+	return total / 200;
 }
 
 
@@ -154,28 +163,34 @@ double readTrainingData(DVector*, DVector*);
 void readAndTest(Perceptron*, double);
 void readAndTestFromConsole(Perceptron*, double);
 void runPerceptron() {
-    int numInputs = 2;
     Perceptron perc;
     initDVector(&perc.weights);
-    DVSetAllRandom(&perc.weights, numInputs);
+    DVSetAllRandom(&perc.weights, 1);
     DVector allInput;
     initDVector(&allInput);
     DVector answers;
     initDVector(&answers);
     //double scale = readTrainingData(&allInput, &answers);
-    double scale = readTrainingDataFromConsole(&allInput, &answers);
+    double scale = readTrainingData(&allInput, &answers);
+		double diffs[200] = {0};
+		int iout = 0;
     int i;
 		for (int tries = 0; tries < 1000; tries++) {
-			for (i = 0; i < allInput.size; i += numInputs) {
+			for (i = 0; i < allInput.size; i++) {
 				DVector singleInput;
 				initDVector(&singleInput);
-				int j;
-				for (j = 0; j < numInputs; j++) {
-					DVPush(&singleInput, allInput.data[i + j]);
-				}
-				train(&perc, &singleInput, answers.data[i / numInputs]);
-				if (DEBUG) {
-					printf("%d ", i / numInputs);
+				DVPush(&singleInput, allInput.data[i]);
+				double answer = answers.data[i];
+				double out = train(&perc, &singleInput, answer);
+				diffs[iout] = out;
+				iout++;
+				printf("av: %lf\n", average(diffs));
+				if(iout == 200) {
+					iout = 0;
+					if (average(diffs) < 0.002) {
+						printf("Average is low\n");
+						break;
+					}
 				}
 			}
 		}
@@ -184,7 +199,7 @@ void runPerceptron() {
       printf("Training done\n");
     }
     //readAndTest(&perc, scale);
-    readAndTestFromConsole(&perc, scale);
+    readAndTest(&perc, scale);
 }
 
 // END PERCEPTRON
