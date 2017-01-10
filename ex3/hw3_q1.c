@@ -1,3 +1,4 @@
+#define _GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
@@ -70,6 +71,7 @@ typedef struct {
 	int clusters;
 	DVector CEst;
 	DVector prevCEst;
+  double maxRange;
 	double maxX, minX, maxY, minY;
 } KMeans;
 
@@ -77,7 +79,7 @@ double calcDistance(double cEstX, double cEstY, double pointX, double pointY) {
 	return sqrt(pow(cEstX - pointX, 2) + pow(cEstY - pointY, 2));
 }
 
-void train(KMeans* km) {
+int train(KMeans* km) {
 	// Total value for each cluster
 	double total[MAX_POINTS * 2] = {0};
 	// Total number of points for each cluster
@@ -103,59 +105,89 @@ void train(KMeans* km) {
 		total[closestEst] += km->points.d[point];
 		total[closestEst + 1] += km->points.d[point + 1];
 		numPoints[closestEst / 2]++;
-	}	
+	}
 	// Average out and get new positions
 	for (int ce = 0; ce < km->CEst.size; ce += 2) {
+    // If zero points have been allocated to a cluster
+    // return fail
+    if (numPoints[ce / 2] == 0) {
+      return 0
+    }
 		//printf("----- Cluster: %d\n", ce);
 		//printf("total: %lf, pointX: %lf\n", total[ce], numPoints[ce / 2]);
 		if (total[ce] != 0.0) {
-			km->CEst.d[ce] = total[ce] / numPoints[ce / 2];	
+			km->CEst.d[ce] = total[ce] / numPoints[ce / 2];
 		}
 		//printf("CE: %d, total: %lf, pointY: %lf\n", ce, total[ce + 1], numPoints[ce / 2]);
 		if (total[ce + 1] != 0.0) {
 			km->CEst.d[ce + 1] = total[ce + 1] / numPoints[ce / 2];
-		}	
+		}
 	}
+  // Success
+  return 1;
 }
 
 void readFromFile(KMeans* km);
 void readFromConsole(KMeans* km);
 
 void runKMeans() {
-	KMeans km;
-	initDVector(&km.points);
-	initDVector(&km.CEst);
-	initDVector(&km.prevCEst);
-	readFromConsole(&km);
-	int done = 0;
-	//printf("maxX: %lf, maxY: %lf, minX: %lf, minY: %lf\n", km.maxX, km.maxY, km.minX, km.minY);
-	for (int cluster = 0; cluster < km.clusters; cluster++) {
-		//printf("----- Cluster: %d\n", cluster);
-		DVPush(&km.CEst, randomDVal(fabs(km.maxX) + fabs(km.minX), fabs(km.minX), 1));			
-		DVPush(&km.CEst, randomDVal(fabs(km.maxY) + fabs(km.minY), fabs(km.minY), 1));			
-	}
-	// Set deltas to a non-zero value the first round
+  int retry = 1;
+  while (retry == 1) {
+  	KMeans km;
+  	initDVector(&km.points);
+  	initDVector(&km.CEst);
+  	initDVector(&km.prevCEst);
+  	readFromFile(&km);
+    if (km.maxX - km.minX > km.maxY - km.minY) {
+      km.maxRange = km.maxX - km.minX;
+    } else {
+      km.maxRange = km.maxY - km.minY;
+    }
+  	int done = 0;
+  	//printf("maxX: %lf, maxY: %lf, minX: %lf, minY: %lf\n", km.maxX, km.maxY, km.minX, km.minY);
+  	for (int cluster = 0; cluster < km.clusters; cluster++) {
+  		//printf("----- Cluster: %d\n", cluster);
+  		DVPush(&km.CEst, randomDVal(fabs(km.maxX) + fabs(km.minX), fabs(km.minX), 1));
+  		DVPush(&km.CEst, randomDVal(fabs(km.maxY) + fabs(km.minY), fabs(km.minY), 1));
+  	}
+  	// Set deltas to a non-zero value the first round
+  	for (int cluster = 0; cluster < km.CEst.size; cluster += 2) {
+  		km.prevCEst.d[cluster] = 10000000;
+  	}
+  	int count = 0;
+    int converged = 1;
+  	while (!done) {
+  		converged = train(&km);
+  		count++;
+  		done = 1;
+  		printf("-----\n");
+  		for (int cluster = 0; cluster < km.CEst.size; cluster += 2) {
+  			printf("%lf\n",fabs(km.CEst.d[cluster] - km.prevCEst.d[cluster]));
+  			if (fabs(km.CEst.d[cluster] - km.prevCEst.d[cluster]) > 0.0001) {
+  				km.prevCEst.d[cluster] = km.CEst.d[cluster];
+  				km.prevCEst.d[cluster + 1] = km.CEst.d[cluster + 1];
+  				done = 0;
+  			}
+  		}
+  	}
+    if (converged == 0) {
+      retry = 1;
+    } else {
+      retry = 1;
+      int start = 2;
+      for (int cluster = start; cluster < km.CEst.size; cluster += 2) {
+        if (km.CEst.d[cluster - 2] - km.CEst.d[cluster] < km.maxRange * 0.1 &&
+            km.CEst.d[cluster - 1] - km.CEst.d[cluster + 1] < km.maxRange * 0.1) {
+          retry = 1;
+        }
+        start += 2;
+      }
+    }
+  }
+	printf("Count: %d\n", count);
 	for (int cluster = 0; cluster < km.CEst.size; cluster += 2) {
-		km.prevCEst.d[cluster] = 10000000;
-	}
-	int count = 0;
-	while (!done) {
-		train(&km);
-		count++;
-		done = 1;
-		//printf("-----\n");
-		for (int cluster = 0; cluster < km.CEst.size; cluster += 2) {
-			//printf("%lf\n",fabs(km.CEst.d[cluster] - km.prevCEst.d[cluster]));
-			if (fabs(km.CEst.d[cluster] - km.prevCEst.d[cluster]) > 0.0001) {
-				km.prevCEst.d[cluster] = km.CEst.d[cluster];
-				km.prevCEst.d[cluster + 1] = km.CEst.d[cluster + 1];
-				done = 0;
-			}	
-		}
-	}
-	//printf("Count: %d\n", count);
-	for (int cluster = 0; cluster < km.CEst.size; cluster += 2) {
-		printf("%lf,%lf\n", km.CEst.d[cluster], km.CEst.d[cluster + 1]);
+		//printf("%lf,%lf\n", km.CEst.d[cluster], km.CEst.d[cluster + 1]);
+		printf("(%lf,%lf),", km.CEst.d[cluster], km.CEst.d[cluster + 1]);
 	}
 }
 
