@@ -166,7 +166,7 @@ int runKMeans(KMeans km) {
     for (int otherCluster = cluster + 2; otherCluster < km.CEst.size; otherCluster +=2) {
       if (sqrt(pow(km.CEst.d[cluster] - km.CEst.d[otherCluster], 2) +
                pow(km.CEst.d[cluster + 1] - km.CEst.d[otherCluster + 1], 2)) <
-          km.maxRange * 0.04) {
+          km.maxRange * 0.23) {
         return 0;
         /*printf("Clusters {%lf, %lf} and {%lf, %lf} too close\n",
                 km.CEst.d[cluster - 2], km.CEst.d[cluster - 1],
@@ -184,92 +184,34 @@ int runKMeans(KMeans km) {
 }
 
 void KMeansHandler() {
-	KMeans km;
-	initDVector(&km.points);
-	initDVector(&km.prevCEst);
-	readFromConsole(&km);
+  KMeans km;
+  initDVector(&km.points);
+  initDVector(&km.prevCEst);
+  km.clusters = 1;
+  readFromConsole(&km);
+  //readFromFile(&km);
   if (km.maxX - km.minX > km.maxY - km.minY) {
     km.maxRange = km.maxX - km.minX;
   } else {
     km.maxRange = km.maxY - km.minY;
   }
-   int done = 0;
-   while (done == 0) {
-     done = runKMeans(km);
-   }
-}
-
-void runOldKMeans() {
-  int retry = 1;
-  while (retry == 1) {
-    //printf("Running KMeans\n");
-  	KMeans km;
-  	initDVector(&km.points);
-  	initDVector(&km.CEst);
-  	initDVector(&km.prevCEst);
-  	readFromConsole(&km);
-    if (km.maxX - km.minX > km.maxY - km.minY) {
-      km.maxRange = km.maxX - km.minX;
-    } else {
-      km.maxRange = km.maxY - km.minY;
-    }
-  	int done = 0;
-  	//printf("maxX: %lf, maxY: %lf, minX: %lf, minY: %lf\n", km.maxX, km.maxY, km.minX, km.minY);
-  	for (int cluster = 0; cluster < km.clusters; cluster++) {
-  		//printf("----- Cluster: %d\n", cluster);
-  		DVPush(&km.CEst, randomDVal(fabs(km.maxX) + fabs(km.minX), fabs(km.minX), 1));
-  		DVPush(&km.CEst, randomDVal(fabs(km.maxY) + fabs(km.minY), fabs(km.minY), 1));
-  	}
-  	// Set deltas to a non-zero value the first round
-  	for (int cluster = 0; cluster < km.CEst.size; cluster += 2) {
-  		km.prevCEst.d[cluster] = 10000000;
-  	}
-  	int count = 0;
-    int converged = 1;
-  	while (!done) {
-  		converged = train(&km);
-  		count++;
-  		done = 1;
-  		//printf("-----\n");
-  		for (int cluster = 0; cluster < km.CEst.size; cluster += 2) {
-  			//printf("%lf\n",fabs(km.CEst.d[cluster] - km.prevCEst.d[cluster]));
-  			if (fabs(km.CEst.d[cluster] - km.prevCEst.d[cluster]) > 0.0001) {
-  				km.prevCEst.d[cluster] = km.CEst.d[cluster];
-  				km.prevCEst.d[cluster + 1] = km.CEst.d[cluster + 1];
-  				done = 0;
-  			}
-  		}
-  	}
-    retry = 0;
-    if (converged == 0) {
-      //printf("Clusters did not converge\n");
-      retry = 1;
-    } else {
-      for (int cluster = 0; cluster < km.CEst.size - 2; cluster += 2) {
-        for (int otherCluster = cluster + 2; otherCluster < km.CEst.size; otherCluster +=2) {
-          if (sqrt(pow(km.CEst.d[cluster] - km.CEst.d[otherCluster], 2) +
-                   pow(km.CEst.d[cluster + 1] - km.CEst.d[otherCluster + 1], 2)) <
-              km.maxRange * 0.1) {
-            retry = 1;
-            /*printf("Clusters {%lf, %lf} and {%lf, %lf} too close\n",
-                    km.CEst.d[cluster - 2], km.CEst.d[cluster - 1],
-                    km.CEst.d[cluster], km.CEst.d[cluster + 1]);
-            */
-          }
-        }
+  for (int numClusters = 15; numClusters >= 2; numClusters--) {
+    km.clusters = numClusters;
+    int done = 0;
+    int tries = 0;
+    while (done == 0) {
+      done = runKMeans(km);
+      if (done == 1) {
+        return;
       }
-    }
-	  //printf("Count: %d\n", count);
-    if (retry == 0) {
-    	for (int cluster = 0; cluster < km.CEst.size; cluster += 2) {
-    		printf("%lf,%lf\n", km.CEst.d[cluster], km.CEst.d[cluster + 1]);
-    		//printf("(%lf,%lf),", km.CEst.d[cluster], km.CEst.d[cluster + 1]);
-        //printf("numRetries: %d\n", numRetries);
-    	}
-      return;
+      tries++;
+      if (tries == 100) {
+        break;
+      }
     }
   }
 }
+
 
 // END KMEANS
 
@@ -285,8 +227,6 @@ void readFromFile(KMeans* km) {
     printf("File open failed\n");
   }
 	// Get number of clusters
-	read = getline(&line, &length, filePtr);
-	sscanf(line, "%d", &km->clusters);
 	read = getline(&line, &length, filePtr);
 	double x, y;
 	char ch;
@@ -315,7 +255,6 @@ void readFromFile(KMeans* km) {
 void readFromConsole(KMeans* km) {
 	double x, y;
 	char ch;
-	scanf("%d", &km->clusters);
 	scanf("%lf%c%lf", &x, &ch, &y);
 	km->maxX = x;
 	km->minX = x;
