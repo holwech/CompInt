@@ -4,7 +4,8 @@
 #include <time.h>
 #include <math.h>
 
-#define DEBUG 0
+typedef enum { false, true } bool;
+#define DEBUG 1
 #define ANS 1
 #define NMAX 10
 #define MAX_POINTS 1000
@@ -74,12 +75,17 @@ typedef struct {
 } CVector;
 
 void CVPrintAsChar(CVector* vector) {
-  for (int row = 0; row < N_X * N_Y; row += N_Y) {
-    for (int col = 0; col < N_Y; col++) {
-      printf("%c ", vector.d[row + col]);
+  for (int row = 0; row < N_X * N_Y; row += N_X) {
+    for (int col = 0; col < N_X; col++) {
+      if (vector->d[row + col] == -1) {
+        printf(". ");
+      } else {
+        printf("* ");
+      }
     }
     printf("\n");
   }
+  printf("\n\n");
 }
 
 void initCVector(CVector* vector) {
@@ -101,44 +107,41 @@ typedef struct {
 
 typedef struct {
   Neuron neu[N_X * N_Y];
-  CVector td;
+  CVector td[10];
   int numTDImg;
-  CVector pd;
+  CVector pd[10];
   int numPDImg;
 } Hopfield;
 
+void readFromFile(Hopfield*);
 void initHopfield(Hopfield* hf) {
   // Set neuron output state
   for (int i = 0; i < 10; i++) {
-    initCVector(&hf.td[i]);
-    initCVector(&hf.pd[i]);
+    initCVector(&hf->td[i]);
+    initCVector(&hf->pd[i]);
   }
   readFromFile(hf);
   // Calculate initial weights
   for (int image = 0; image < hf->numTDImg; image++) {
-    for (int pixel = 0; pixel < N_X * N_Y; pixel++) {
-      for (int weight = pixel; weight < N_X * N_Y; weight++) {
-        if (pixel == weight) {
-          hf->neu[pixel].w[w] = 0;
-          hf->neu[w].w[pixel] = 0;
+    for (int node = 0; node < N_X * N_Y; node++) {
+      for (int weight = node; weight < N_X * N_Y; weight++) {
+        if (node == weight) {
+          hf->neu[node].w[weight] = 0;
+          hf->neu[weight].w[node] = 0;
         } else {
-          hf->neu[pixel].w[w] += hf->td[w];
-          hf->neu[w].w[pixel] += hf->td[w];
+          hf->neu[node].w[weight] += hf->td[image].d[weight];
+          hf->neu[weight].w[node] += hf->td[image].d[weight];
         }
       }
     }
   }
 }
 
-void train(Hopfield* hf) {
-  for ()
-}
 
 
-void readFromFile(Hopfield*);
 void runHopfield() {
   Hopfield hf;
-  initHopfield(hf);
+  initHopfield(&hf);
 
 }
 
@@ -156,36 +159,61 @@ void readFromFile(Hopfield* hf) {
     printf("File open failed\n");
   }
   int image = 0;
-  while ((read = getline(&line, &length, filePtr)) != -1) {
-    for (int i = 0; i < 10; i++) {
+  bool done = false;
+  while (((read = getline(&line, &length, filePtr)) != -1) && !done) {
+    for (int i = 0; i < 20; i++) {
       if (line[i] == '.') {
         CVPush(&hf->td[image], -1);
       } else if (line[i] == '*') {
         CVPush(&hf->td[image], 1);
-      } else if (line[0] == '-') {
+      } else if (line[0] == '-' && read == 2) {
         image++;
         printf("Training %d read\n", image);
+        break;
+      } else {
+        image++;
+        printf("Training done\n");
+        done = true;
+        break;
       }
     }
 	}
   hf->numTDImg = image;
+  done = false;
   image = 0;
-  while ((read = getline(&line, &length, filePtr)) != -1) {
-    for (int i = 0; i < 10; i++) {
+  for (int i = 0; i < 20; i++) {
+    if (line[i] == '.') {
+      CVPush(&hf->pd[image], -1);
+    } else if (line[i] == '*') {
+      CVPush(&hf->pd[image], 1);
+    } else if (line[0] == '-' && read == 2) {
+      image++;
+      printf("Problem %d read\n", image);
+      break;
+    }
+  }
+  while (((read = getline(&line, &length, filePtr)) != -1) && !done) {
+    for (int i = 0; i < 20; i++) {
       if (line[i] == '.') {
         CVPush(&hf->pd[image], -1);
       } else if (line[i] == '*') {
         CVPush(&hf->pd[image], 1);
-      } else if (line[0] == '-') {
+      } else if (line[0] == '-' && read == 2) {
         image++;
         printf("Problem %d read\n", image);
+        break;
       }
     }
   }
+  image++;
+  printf("PDIMG: %d\n", image);
   hf->numPDImg = image;
   if (DEBUG) {
-    for (int i = 0; i < 10; i++) {
+    for (int i = 0; i < hf->numTDImg; i++) {
       CVPrintAsChar(&hf->td[i]);
+    }
+    for (int i = 0; i < hf->numPDImg; i++) {
+      CVPrintAsChar(&hf->pd[i]);
     }
   }
   fclose(filePtr);
@@ -194,30 +222,9 @@ void readFromFile(Hopfield* hf) {
   }
 }
 
-void readFromConsole(KMeans* km) {
-	double x, y;
-	char ch;
-	scanf("%d", &km->clusters);
-	scanf("%lf%c%lf", &x, &ch, &y);
-	km->maxX = x;
-	km->minX = x;
-	km->maxY = y;
-	km->minY = y;
-	DVPush(&km->points, x);
-	DVPush(&km->points, y);
-	while(scanf("%lf%c%lf", &x, &ch, &y) != EOF) {
-		DVPush(&km->points, x);
-		DVPush(&km->points, y);
-		if (x > km->maxX) { km->maxX = x; }
-		if (x < km->minX) { km->minX = x; }
-		if (y > km->maxY) { km->maxY = y; }
-		if (y < km->minY) { km->minY = y; }
-	}
-	// Get number of clusters
-}
 
 int main() {
   srand(time(0));
-	KMeansHandler();
+  runHopfield();
 	return (0);
 }
