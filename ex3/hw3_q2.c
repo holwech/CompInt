@@ -200,13 +200,13 @@ bool compare(Hopfield* hf /*, CVector* input*/) {
 	}
 }
 
-void flip(Hopfield* hf) {
-	for (int i = 0; i < N_X * N_Y / 15; i++) {
-    int oldVal = hf->neu[rand() % (N_X * N_Y)].x;
+void flip(CVector* input) {
+	for (int i = 0; i < N_X * N_Y / 10; i++) {
+    int oldVal = input->d[rand() % (N_X * N_Y)];
     int newVal = oldVal * -1;
     int randNum = rand() % (N_X * N_Y);
-    printf("old: %d, new: %d\n, pos: %d", oldVal, newVal, randNum);
-		hf->neu[randNum].x = newVal;
+    //printf("old: %d, new: %d\n, pos: %d", oldVal, newVal, randNum);
+		input->d[randNum] = newVal;
 	}
 }
 
@@ -224,59 +224,74 @@ int normalize(int value) {
 void checkPattern(Hopfield* hf) {
 	// Check for each image
 	for (int image = 0; image < hf->numPDImg; image++) {
+		//printf("IMAGE: %d, NUMPD: %d\n", image, hf->numPDImg);
 		bool hasChanged = true;
 		CVector input;
 		initCVector(&input);
 		CVCopy(&input, hf->pd[image]);
     //printf("STARTING WITH:\n");
     //CVPrintAsChar(&input, false);
-		// Continue until stable
-		while (hasChanged){
-			hasChanged = false;
-			// Calculate output for given image
-			for (int neu = 0; neu < N_X * N_Y; neu++) {
-				int prevX = hf->neu[neu].x;
-        if (hf->neu[neu].x != 0) {
-          prevX = normalize(prevX);
-        }
-				hf->neu[neu].x = 0;
-				for (int weight = 0; weight < N_X * N_Y; weight++) {
-					hf->neu[neu].x += hf->neu[neu].w[weight] * input.d[weight];
+		int firstRun = 0;
+		while (1){
+			if (firstRun) {
+				printf("SECOND LOOP\n");
+				CVPrintAsChar(&input, false);
+				firstRun++;
+			}
+			// Continue until stable
+			while (hasChanged){
+				hasChanged = false;
+				// Calculate output for given image
+				for (int neu = 0; neu < N_X * N_Y; neu++) {
+					int prevX = input.d[neu];
+					hf->neu[neu].x = 0;
+					for (int weight = 0; weight < N_X * N_Y; weight++) {
+						hf->neu[neu].x += hf->neu[neu].w[weight] * input.d[weight];
+					}
+					hf->neu[neu].x = normalize(hf->neu[neu].x);
+					// If different output from previous, continue the while-loop
+					if (prevX != hf->neu[neu].x) {
+						hasChanged = true;
+					}
 				}
-				hf->neu[neu].x = normalize(hf->neu[neu].x);
-				// If different output from previous, continue the while-loop
-				if (prevX != hf->neu[neu].x) {
-					hasChanged = true;
+				// Copy new output to input
+				for (int i = 0; i < N_X * N_Y; i++) {
+					input.d[i] = hf->neu[i].x;
+					input.size = N_X * N_Y;
 				}
+				/*
+					 for (int y = 0; y < N_Y; y++) {
+					 for (int x = 0; x < N_X; x++) {
+					 printf("N%d: %d ", y * N_Y + x, input.d[y * N_Y + x]);
+					 }
+					 printf("\n");
+					 }
+					 printf("\n");
+					 break;
+					 */
 			}
-			// Copy new output to input
-			for (int i = 0; i < N_X * N_Y; i++) {
-				input.d[i] = hf->neu[i].x;
-				input.size = N_X * N_Y;
+			if (firstRun == 2) {
+				printf("SECOND LOOP\n");
+				CVPrintAsChar(&input, false);
 			}
-      /*
-  	for (int y = 0; y < N_Y; y++) {
-  		for (int x = 0; x < N_X; x++) {
-  			printf("N%d: %d ", y * N_Y + x, input.d[y * N_Y + x]);
-  		}
-  		printf("\n");
-  	}
-  	printf("\n");
-    break;
-    */
-		}
-		int matchingPattn = compare(hf);
-		// If no matching pattern flip 10% of the output
-		if (matchingPattn == -1) {
-			image--;
-			flip(hf);
-		// More than 70% match, assume it is the given training pattern
-		} else {
-			bool last = false;
-			if ((image + 1) == hf->numPDImg) {
-				last = true;
+			int matchingPattn = compare(hf);
+			// If no matching pattern flip 10% of the output
+			if (matchingPattn == -1) {
+				printf("BEFORE FLIP\n");
+				CVPrintAsChar(&input, false);
+				flip(&input);
+				printf("AFTER FLIP\n");
+				CVPrintAsChar(&input, false);
+				firstRun = 1;
+				// More than 70% match, assume it is the given training pattern
+			} else {
+				bool last = false;
+				if ((image + 1) == hf->numPDImg) {
+					last = true;
+				}
+				CVPrintAsChar(&hf->td[matchingPattn], last);
+				break;
 			}
-			CVPrintAsChar(&hf->td[matchingPattn], last);
 		}
 	}
 }
@@ -420,6 +435,7 @@ void readFromConsole(Hopfield* hf) {
   image++;
   //printf("PDIMG: %d\n", image);
   hf->numPDImg = image;
+	/*
   if (0) {
     for (int i = 0; i < hf->numTDImg; i++) {
       CVPrintAsChar(&hf->td[i], false);
@@ -428,6 +444,7 @@ void readFromConsole(Hopfield* hf) {
       CVPrintAsChar(&hf->pd[i], false);
     }
   }
+	*/
 }
 
 int main() {
