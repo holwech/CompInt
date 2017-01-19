@@ -9,8 +9,8 @@ typedef enum { false, true } bool;
 #define ANS 1
 #define NMAX 10
 #define MAX_POINTS 1000
-#define N_X 3
-#define N_Y 3
+#define N_X 20
+#define N_Y 10
 
 // END ARRAY
 
@@ -78,9 +78,9 @@ void CVPrintAsChar(CVector* vector, bool last) {
   for (int row = 0; row < N_X * N_Y; row += N_X) {
     for (int col = 0; col < N_X; col++) {
       if (vector->d[row + col] == -1) {
-        printf(". ");
+        printf(".");
       } else {
-        printf("* ");
+        printf("*");
       }
     }
     printf("\n");
@@ -128,6 +128,7 @@ void HFSetOutToZero(Hopfield* hf) {
 	}
 }
 
+void readFromConsole(Hopfield*);
 void readFromFile(Hopfield*);
 void initHopfield(Hopfield* hf) {
   // Set neuron output state
@@ -153,23 +154,25 @@ void initHopfield(Hopfield* hf) {
       }
     }
   }
+  /*
 	for (int y = 0; y < N_Y; y++) {
 		for (int x = 0; x < N_X; x++) {
 			printf("N%d: ", y * N_Y + x);
 			for (int weight = 0; weight < N_X * N_Y; weight++) {
 				printf("%d ", hf->neu[y * N_Y + x].w[weight]);
 			}
-		}	
+		}
 		printf("\n");
 	}
 	printf("\n");
+  */
 }
 
 // Return -1 if no match is found, return index of image if
 // similarity is over 70%
-bool compare(Hopfield* hf) {
+bool compare(Hopfield* hf /*, CVector* input*/) {
 	double similarCount[10] = {0};
-	for (int image = 0; image < hf->numPDImg; image++) {
+	for (int image = 0; image < hf->numTDImg; image++) {
 		for (int i = 0; i < N_X * N_Y; i++) {
 			if (hf->neu[i].x == hf->td[image].d[i])	{
 				similarCount[image]++;
@@ -178,23 +181,44 @@ bool compare(Hopfield* hf) {
 	}
 	int maxPercent = 0;
 	int maxIndex = 0;
-	for (int image = 0; image < hf->numPDImg; image++) {
+	for (int image = 0; image < hf->numTDImg; image++) {
 		if ((similarCount[image] / (N_X * N_Y)) > maxPercent) {
-			maxPercent = similarCount[image] / (N_X * N_Y);	
+			maxPercent = similarCount[image] / (N_X * N_Y);
 			maxIndex = image;
-		}	
+		}
 	}
 	if (maxPercent < 0.7) {
 		return -1;
 	} else {
+    /*
+    printf("CURRENT SUGGESTED:\n");
+    CVPrintAsChar(&hf->td[maxIndex], false);
+    printf("SET AS:\n");
+    CVPrintAsChar(input, false);
+    */
 		return maxIndex;
 	}
 }
 
 void flip(Hopfield* hf) {
-	for (int i = 0; i < N_X * N_Y / 10; i++) {
-		hf->neu[rand() % (N_X * N_Y)].x = hf->neu[rand() % (N_X * N_Y)].x * -1;
+	for (int i = 0; i < N_X * N_Y / 15; i++) {
+    int oldVal = hf->neu[rand() % (N_X * N_Y)].x;
+    int newVal = oldVal * -1;
+    int randNum = rand() % (N_X * N_Y);
+    printf("old: %d, new: %d\n, pos: %d", oldVal, newVal, randNum);
+		hf->neu[randNum].x = newVal;
 	}
+}
+
+int normalize(int value) {
+  if (value >= 0) {
+    return 1;
+  } else if (value < 0) {
+    return -1;
+  } else {
+    //printf("Output was 0, what to do?!?!?\n");
+    return 0;
+  }
 }
 
 void checkPattern(Hopfield* hf) {
@@ -203,17 +227,23 @@ void checkPattern(Hopfield* hf) {
 		bool hasChanged = true;
 		CVector input;
 		initCVector(&input);
-		CVCopy(&input, hf->td[image]);
+		CVCopy(&input, hf->pd[image]);
+    //printf("STARTING WITH:\n");
+    //CVPrintAsChar(&input, false);
 		// Continue until stable
 		while (hasChanged){
 			hasChanged = false;
 			// Calculate output for given image
 			for (int neu = 0; neu < N_X * N_Y; neu++) {
 				int prevX = hf->neu[neu].x;
+        if (hf->neu[neu].x != 0) {
+          prevX = normalize(prevX);
+        }
 				hf->neu[neu].x = 0;
 				for (int weight = 0; weight < N_X * N_Y; weight++) {
-					hf->neu[neu].x += hf->neu[neu].w[weight] * input.d[weight];	
+					hf->neu[neu].x += hf->neu[neu].w[weight] * input.d[weight];
 				}
+				hf->neu[neu].x = normalize(hf->neu[neu].x);
 				// If different output from previous, continue the while-loop
 				if (prevX != hf->neu[neu].x) {
 					hasChanged = true;
@@ -224,6 +254,16 @@ void checkPattern(Hopfield* hf) {
 				input.d[i] = hf->neu[i].x;
 				input.size = N_X * N_Y;
 			}
+      /*
+  	for (int y = 0; y < N_Y; y++) {
+  		for (int x = 0; x < N_X; x++) {
+  			printf("N%d: %d ", y * N_Y + x, input.d[y * N_Y + x]);
+  		}
+  		printf("\n");
+  	}
+  	printf("\n");
+    break;
+    */
 		}
 		int matchingPattn = compare(hf);
 		// If no matching pattern flip 10% of the output
@@ -234,7 +274,7 @@ void checkPattern(Hopfield* hf) {
 		} else {
 			bool last = false;
 			if ((image + 1) == hf->numPDImg) {
-				last = true;	
+				last = true;
 			}
 			CVPrintAsChar(&hf->td[matchingPattn], last);
 		}
@@ -326,6 +366,69 @@ void readFromFile(Hopfield* hf) {
   }
 }
 
+void readFromConsole(Hopfield* hf) {
+  char line[20];
+
+  int image = 0;
+  bool done = false;
+  while ((scanf("%s", line) != EOF) && !done) {
+    for (int i = 0; i < N_X; i++) {
+      if (line[i] == '.') {
+        CVPush(&hf->td[image], -1);
+      } else if (line[i] == '*') {
+        CVPush(&hf->td[image], 1);
+      } else if (line[0] == '-' && line[1] == '-') {
+        image++;
+        //printf("Training done\n");
+        done = true;
+        break;
+      } else {
+        image++;
+        //printf("Training %d read\n", image);
+        break;
+      }
+    }
+	}
+  hf->numTDImg = image;
+  //printf("TDIMG: %d\n", image);
+  done = false;
+  image = 0;
+  for (int i = 0; i < N_X; i++) {
+    if (line[i] == '.') {
+      CVPush(&hf->pd[image], -1);
+    } else if (line[i] == '*') {
+      CVPush(&hf->pd[image], 1);
+    } else if (line[0] == '-') {
+      image++;
+      //printf("Problem %d read\n", image);
+      break;
+    }
+  }
+  while ((scanf("%s", line) != EOF) && !done) {
+    for (int i = 0; i < N_X; i++) {
+      if (line[i] == '.') {
+        CVPush(&hf->pd[image], -1);
+      } else if (line[i] == '*') {
+        CVPush(&hf->pd[image], 1);
+      } else if (line[0] == '-') {
+        image++;
+        //printf("Problem %d read\n", image);
+        break;
+      }
+    }
+  }
+  image++;
+  //printf("PDIMG: %d\n", image);
+  hf->numPDImg = image;
+  if (0) {
+    for (int i = 0; i < hf->numTDImg; i++) {
+      CVPrintAsChar(&hf->td[i], false);
+    }
+    for (int i = 0; i < hf->numPDImg; i++) {
+      CVPrintAsChar(&hf->pd[i], false);
+    }
+  }
+}
 
 int main() {
   srand(time(0));
