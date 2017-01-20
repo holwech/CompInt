@@ -131,7 +131,7 @@ void readFromFile(KMeans* km);
 void readFromConsole(KMeans* km);
 
 
-int runKMeans(KMeans km) {
+int runKMeans(KMeans km, double sigma) {
 	int done = 0;
 	//printf("maxX: %lf, maxY: %lf, minX: %lf, minY: %lf\n", km.maxX, km.maxY, km.minX, km.minY);
 	for (int cluster = 0; cluster < km.clusters; cluster++) {
@@ -166,7 +166,7 @@ int runKMeans(KMeans km) {
     for (int otherCluster = cluster + 2; otherCluster < km.CEst.size; otherCluster +=2) {
       if (sqrt(pow(km.CEst.d[cluster] - km.CEst.d[otherCluster], 2) +
                pow(km.CEst.d[cluster + 1] - km.CEst.d[otherCluster + 1], 2)) <
-          km.maxRange * 0.04) {
+          km.maxRange * sigma) {
         return 0;
         /*printf("Clusters {%lf, %lf} and {%lf, %lf} too close\n",
                 km.CEst.d[cluster - 2], km.CEst.d[cluster - 1],
@@ -187,15 +187,21 @@ void KMeansHandler() {
 	KMeans km;
 	initDVector(&km.points);
 	initDVector(&km.prevCEst);
-	readFromConsole(&km);
+    readFromConsole(&km);
   if (km.maxX - km.minX > km.maxY - km.minY) {
     km.maxRange = km.maxX - km.minX;
   } else {
     km.maxRange = km.maxY - km.minY;
   }
    int done = 0;
+   int runs = 0;
+   double sigma = 0.06;
    while (done == 0) {
-     done = runKMeans(km);
+     done = runKMeans(km, sigma);
+     runs++;
+     if (runs == 100) {
+        sigma -= 0.02;
+     }
    }
 }
 
