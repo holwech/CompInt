@@ -5,7 +5,7 @@
 #include <math.h>
 
 typedef enum { false, true } bool;
-#define DEBUG 1
+#define DEBUG 0
 #define ANS 1
 #define NMAX 10
 #define MAX_POINTS 1000
@@ -233,6 +233,7 @@ typedef struct {
   double u[2][4];
   double w[4];
   double output[2];
+  Point p_c;
 } Fuzzy;
 
 // END FUZZY
@@ -302,7 +303,27 @@ void calc_output(Fuzzy* fl) {
     v_r_d += fl->w[i];
   }
   fl->output[0] = v_l_n / v_l_d;
-  fl->output[1] = v_r_n / v_r_n;
+  fl->output[1] = v_r_n / v_r_d;
+}
+
+double calc_v_robot(double v_l, double v_r) {
+    return (v_l + v_r) / 2.0;
+}
+
+double calc_w_robot(double v_l, double v_r) {
+    return (v_l - v_r) / 0.16;
+}
+
+double calc_next_x(double x, double v_robot, double theta_c) {
+    return x + v_robot * cos(theta_c);
+}
+
+double calc_next_y(double y, double v_robot, double theta_c) {
+    return y + v_robot * sin(theta_c);
+}
+
+double calc_next_tc(double theta_c, double w_robot) {
+    return theta_c + w_robot;
 }
 
 void readFromFile(Fuzzy*);
@@ -312,7 +333,10 @@ void run() {
   initPVector(&fl.input_r);
   initPVector(&fl.input_c);
   //readFromFile(&fl);
-  readFromFile(&fl);
+  readFromConsole(&fl);
+  fl.input_c.d[0].x = fl.input_r.d[0].x;
+  fl.input_c.d[0].y = fl.input_r.d[0].y;
+  fl.input_c.d[0].theta = fl.input_r.d[0].theta;
   for (int i = 0; i < fl.input_r.size; i++) {
     double d_e = euclidean(fl.input_r.d[i], fl.input_c.d[i]);
     double theta_e = fl.input_r.d[i].theta - fl.input_c.d[i].theta;
@@ -323,6 +347,11 @@ void run() {
     calc_u(&fl, d_e, theta_e);
     calc_w(&fl, u_de_small, u_de_large, u_theta_small, u_theta_large);
     calc_output(&fl);
+    double v_robot = calc_v_robot(fl.output[0], fl.output[1]);
+    double w_robot = calc_w_robot(fl.output[0], fl.output[1]);
+    fl.input_c.d[i + 1].x = calc_next_x(fl.input_c.d[i].x, v_robot, fl.input_c.d[i].theta);
+    fl.input_c.d[i + 1].y = calc_next_y(fl.input_c.d[i].y, v_robot, fl.input_c.d[i].theta);
+    fl.input_c.d[i + 1].theta = calc_next_tc(fl.input_c.d[i].theta, w_robot);
     if (DEBUG) {
       printf("--------------\n");
       printf("%lf,%lf,%lf,%lf\n", u_de_small, u_de_large, u_theta_small, u_theta_large);
@@ -331,7 +360,7 @@ void run() {
       printf("v_r u1: %lf, u2: %lf, u3: %lf, u4: %lf\n", fl.u[1][0], fl.u[1][1], fl.u[1][2], fl.u[1][3]);
       printf("w1: %lf, w2: %lf, w3: %lf, w4: %lf\n", fl.w[0], fl.w[1], fl.w[2], fl.w[3]);
     }
-    printf("%lf,%lf\n", fl.output[0], fl.output[1]);
+    printf("%lf,%lf,%lf\n", fl.input_c.d[i + 1].x, fl.input_c.d[i + 1].y, fl.input_c.d[i + 1].theta);
   }
 }
 
@@ -346,12 +375,10 @@ void readFromFile(Fuzzy* fl) {
     printf("File open failed\n");
   }
   while ((read = getline(&line, &length, filePtr)) != -1) {
-      double xr, yr, tr, xc, yc, tc;
-      sscanf(line,"%lf,%lf,%lf,%lf,%lf,%lf", &xr, &yr, &tr, &xc, &yc, &tc);
+      double xr, yr, tr;
+      sscanf(line,"%lf,%lf,%lf", &xr, &yr, &tr);
       Point pr = {xr, yr, tr};
-      Point pc = {xc, yc, tc};
       PVPush(&fl->input_r, pr);
-      PVPush(&fl->input_c, pc);
   }
   if (DEBUG) {
     for (int i = 0; i < fl->input_r.size; i++) {
@@ -368,12 +395,10 @@ void readFromFile(Fuzzy* fl) {
 void readFromConsole(Fuzzy* fl) {
   char line[1000];
   while (scanf("%s", line) != EOF) {
-      double xr, yr, tr, xc, yc, tc;
-      sscanf(line,"%lf,%lf,%lf,%lf,%lf,%lf", &xr, &yr, &tr, &xc, &yc, &tc);
+      double xr, yr, tr;
+      sscanf(line,"%lf,%lf,%lf", &xr, &yr, &tr);
       Point pr = {xr, yr, tr};
-      Point pc = {xc, yc, tc};
       PVPush(&fl->input_r, pr);
-      PVPush(&fl->input_c, pc);
   }
   if (DEBUG) {
     for (int i = 0; i < fl->input_r.size; i++) {
