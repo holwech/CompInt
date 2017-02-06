@@ -37,7 +37,10 @@ Agent* sarsaUpdate(Agent* a, State s_t1, State s_t2, Action a_t1, float r_t) {
 }
 
 Agent* qLearningUpdate(Agent* a, State s_t1, State s_t2, Action a_t1, float r_t) {
-    float newQ = getNextReward(s_t1) + r_t + a->gamma * getNextReward(s_t2);
+		float Q = a->QValues[stateAction2idx(s_t1, a_t1)];
+		Action a_t2 = getGreedyAction(a, s_t2);
+		float QNext = a->QValues[stateAction2idx(s_t2, a_t2)];
+    float newQ = Q + a->alpha * (r_t + gamma * QNext - Q);
     a->QValues[stateAction2idx(s_t1, a_t1)] = newQ;
     a->accumReward += newQ;
 	return a;
