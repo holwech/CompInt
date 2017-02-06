@@ -13,7 +13,7 @@ Student Functions:
 
 // Function of the Agent:
 Action getNextAction(Agent* a, State s_t) {
-	double randNum = (rand() % 101) / 100;
+    double randNum = (rand() % 101) / 100.0;
 	if (randNum <= a->epsilon) {
 		return getRandomAction(a, s_t);
 	} else {
@@ -33,20 +33,23 @@ Action getRandomAction() {
 		case 3:
 			return RIGHT;
 	}
+    return UP;
 }
 
 Action getGreedyAction(Agent* a, State s_t) {
-	Action nextAction = UP;
-	float maxQ = a->QValues[stateAction2idx(s_t, nextAction)];
-	if (a->QValues[stateAction2idx(s_t, DOWN)] >= maxQ) {
-		maxQ = a->QValues[stateAction2idx(s_t, DOWN)];
+    double maxQ = a->QValues[stateAction2idx(s_t, UP)];
+    Action nextAction = UP;
+    if (a->QValues[stateAction2idx(s_t, DOWN)] >= maxQ) {
+        maxQ = a->QValues[stateAction2idx(s_t, DOWN)];
 		nextAction = DOWN;
-	} else if (a->QValues[stateAction2idx(s_t, LEFT)] >= maxQ) {
-		maxQ = a->QValues[stateAction2idx(s_t, LEFT)];
+    }
+    if (a->QValues[stateAction2idx(s_t, LEFT)] >= maxQ) {
+        maxQ = a->QValues[stateAction2idx(s_t, LEFT)];
 		nextAction = LEFT;
-	} else if (a->QValues[stateAction2idx(s_t, RIGHT)] >= maxQ) {
-		maxQ = a->QValues[stateAction2idx(s_t, RIGHT)];
+    }
+    if (a->QValues[stateAction2idx(s_t, RIGHT)] >= maxQ) {
+        maxQ = a->QValues[stateAction2idx(s_t, RIGHT)];
 		nextAction = RIGHT;
 	}
-	return nextAction;
+    return nextAction;
 }
